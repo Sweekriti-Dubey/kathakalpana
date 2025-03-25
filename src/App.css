@@ -175,43 +175,7 @@ body {
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Typography */
-@media (max-width: 768px) {
-  :root {
-    --font-scale: 0.85;
-  }
 
-  body {
-    font-size: calc(14px * var(--font-scale));
-  }
-
-  .hero-section h1 {
-    font-size: calc(2.5em * var(--font-scale));
-  }
-
-  .feature h3 {
-    font-size: calc(1.2em * var(--font-scale));
-  }
-
-  .navbar {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .nav-links {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .features-section,
-  .testimonial-grid,
-  .team-members {
-    flex-direction: column;
-    align-items: center;
-  }
-}
 
 /* Existing CSS from previous file continues... */
 /* [All previous CSS remains the same, with the additions above] */
@@ -540,26 +504,7 @@ body {
   font-style: italic;
 }
 
-/* Responsive Adjustments for Story Layout */
-@media (max-width: 768px) {
-  .story-chapter {
-    flex-direction: column;
-    text-align: center;
-  }
 
-  .chapter-image {
-    justify-self: center;
-    margin-bottom: 20px;
-  }
-
-  .chapter-content {
-    align-items: center;
-  }
-
-  .chapter-content p {
-    text-align: center;
-  }
-}
 
 /* Testimonials Styles */
 .testimonials {
@@ -658,25 +603,6 @@ body {
   backdrop-filter: blur(10px);
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .features-section,
-  .testimonial-grid,
-  .team-members {
-    flex-direction: column;
-    align-items: center;
-  }
 
-  .navbar {
-    flex-direction: column;
-    text-align: center;
-  }
 
-  .nav-links {
-    margin-top: 20px;
-  }
 
-  .nav-links a {
-    margin: 0 10px;
-  }
-}
