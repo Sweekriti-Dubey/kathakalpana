@@ -603,6 +603,160 @@ body {
   backdrop-filter: blur(10px);
 }
 
+@media (max-width: 768px) {
+  /* Improved Navbar Responsiveness */
+  .navbar {
+    flex-direction: column;
+    padding: 10px;
+    position: relative;
+  }
+
+  .navbar-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 15px;
+  }
+
+  .logo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .title {
+    font-size: 1.2em;
+    margin-left: 0;
+    text-align: center;
+  }
+
+  /* Responsive Typography */
+  body {
+    font-size: 14px;
+  }
+
+  .hero-section {
+    padding: 30px 15px;
+  }
+
+  .hero-section h1 {
+    font-size: 2em;
+  }
+
+  .hero-section p {
+    font-size: 0.9em;
+  }
+
+  /* Responsive Sections */
+  .features-section,
+  .testimonial-grid,
+  .team-members {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .feature,
+  .testimonial-card,
+  .team-member {
+    flex: 1 1 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  /* Story Generator Adjustments */
+  .story-generator {
+    padding: 20px;
+  }
+
+  .genre-selection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .genre-selection button {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .story-chapters {
+    grid-template-columns: 1fr;
+  }
+
+  .story-chapter {
+    padding: 15px;
+  }
+
+  .chapter-image {
+    max-width: 200px;
+  }
+
+  /* Navigation Links */
+  .nav-links {
+    width: 100%;
+    margin-top: 15px;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 12px;
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  /* Compact Footer */
+  .app-footer {
+    padding: 15px;
+    font-size: 0.9em;
+  }
+
+  /* Form and Input Responsiveness */
+  input, 
+  textarea, 
+  select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* Ensure full-width buttons */
+  .cta-button,
+  .audio-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Specific Mobile Interaction Improvements */
+@media (max-width: 768px) {
+  /* Increase touch target sizes */
+  .cta-button,
+  .genre-selection button,
+  .nav-links a {
+    min-height: 44px; /* WCAG accessibility recommendation */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Reduce animations on mobile for performance */
+  .hero-section,
+  .feature,
+  .testimonial-card {
+    transition: none;
+  }
+
+  /* Prevent text overflow */
+  h1, h2, h3, h4, p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
 
 
 
