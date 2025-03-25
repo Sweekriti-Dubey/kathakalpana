@@ -24,7 +24,7 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="logo">
-        <img src="../images/logo.png" alt="Story Buddy Logo" />
+        <img src="../images/bg.jpg" alt="Story Buddy Logo" />
         <h1>Story Buddy</h1>
       </div>
       <div className="nav-links">
