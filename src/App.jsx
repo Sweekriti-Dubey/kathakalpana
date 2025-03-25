@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import { Book, Star, Users, Info, Volume2 } from 'lucide-react';
-import mouseImage from './images/mouse.png'; // Import the mouse image
+import mouseImage from '../images/mouse.png'; // Import the mouse image
 
 
 function App() {
