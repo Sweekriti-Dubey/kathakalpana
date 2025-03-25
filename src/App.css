@@ -63,31 +63,28 @@ body {
 /* Navbar Styles */
 .navbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
-  background-color: rgba(105, 55, 121, 0.5);
-  backdrop-filter: blur(10px);
+  justify-content: space-between;
+  padding: 10px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .logo {
-  display: flex;
-  align-items: center;
-}
-
-.logo img {
-  width: 150px; /* Adjust the width as needed */
-  height: auto;
-  margin-right: 15px;
-  background-color:#FF6B9E;
+  width: 100px;
+  height: 100px;
+  background-image: url('../images/logobg.png');
+  background-size: cover;
+  background-position: center;
   box-shadow: 0 4px 6px rgba(18, 1, 16, 0.9);
 }
 
-.logo h1 {
-  color: var(--text-color);
+.title {
+  margin-left: 15px; /* Moves the title away from the logo */
   font-size: 1.5em;
-  margin: 0;
+  color: var(--text-color);
 }
+
+
 
 .nav-links a {
   color: #f6ebf5;

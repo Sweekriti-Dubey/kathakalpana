@@ -23,17 +23,16 @@ function App() {
 function Navbar() {
   return (
     <nav className="navbar">
-      <div className="logo">
-        <img src="../images/bg.jpg" alt="Story Buddy Logo" />
-        <h1>Story Buddy</h1>
-      </div>
-      <div className="nav-links">
-        <Link to="/">Home</Link>
-        <Link to="/generate">Create Story</Link>
-        <Link to="/testimonials">Testimonials</Link>
-        <Link to="/about">About Us</Link>
-      </div>
-    </nav>
+  <div className="logo"></div> {/* Logo Div */}
+  <h1 className="title">Story Buddy</h1> {/* Title Separate */}
+  <div className="nav-links">
+    <Link to="/">Home</Link>
+    <Link to="/generate">Create Story</Link>
+    <Link to="/testimonials">Testimonials</Link>
+    <Link to="/about">About Us</Link>
+  </div>
+</nav>
+
   );
 }
 
