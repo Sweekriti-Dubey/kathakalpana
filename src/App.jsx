@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import { Book, Star, Users, Info, Volume2 } from 'lucide-react';
+import image from './images/mouse.png';
 
 function App() {
   return (
