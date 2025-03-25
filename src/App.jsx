@@ -85,17 +85,17 @@ function StoryGenerator() {
         {
           title: "The Mysterious House",
           content: "Emma noticed the old house at the end of the street always seemed different. Its windows looked like eyes watching her every move.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Strange Sounds",
           content: "At night, whispers echoed through the walls. Emma wondered if the house was trying to tell her something important.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "The Secret Revealed",
           content: "As Emma discovered the house's hidden story, she realized some mysteries are better left unsolved.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Curiosity can be both a gift and a challenge."
@@ -106,17 +106,17 @@ function StoryGenerator() {
         {
           title: "A Magical Discovery",
           content: "Zara found a strange map that seemed to glow under moonlight, leading to an incredible adventure beyond imagination.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "The Cosmic Journey",
           content: "Riding a ship made of stardust, Zara traveled through galaxies, meeting creatures from distant worlds.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Home Again",
           content: "With newfound wisdom, Zara returned home, knowing the universe is vast and full of wonder.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Every journey teaches us something new about ourselves."
@@ -127,17 +127,17 @@ function StoryGenerator() {
         {
           title: "Ancient Egypt",
           content: "Alex found a time machine and traveled back to ancient Egypt, where he met pharaohs and explored pyramids.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Medieval Europe",
           content: "In medieval Europe, Alex witnessed knights in shining armor and grand castles.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "The Future",
           content: "Alex's journey ended in a futuristic city, filled with advanced technology and flying cars.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "History teaches us valuable lessons for the future."
@@ -148,17 +148,17 @@ function StoryGenerator() {
         {
           title: "The Quest Begins",
           content: "Sir Cedric embarked on a quest to save the kingdom, always showing respect to everyone he met.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "The Dragon's Lair",
           content: "Even when facing a fierce dragon, Sir Cedric treated it with respect, earning its trust.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "The Kingdom Saved",
           content: "Sir Cedric's respectful nature helped him save the kingdom and become a beloved hero.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Respect can build strong relationships and solve conflicts."
@@ -169,17 +169,17 @@ function StoryGenerator() {
         {
           title: "A New Friend",
           content: "Lila met a lonely alien on her space adventure and showed empathy by understanding its feelings.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Helping Hands",
           content: "Lila and the alien worked together to fix the alien's spaceship, showing empathy and teamwork.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "A Heartfelt Goodbye",
           content: "Lila's empathy helped her form a lasting friendship with the alien, even as they said goodbye.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Empathy helps us connect with others and build meaningful relationships."
@@ -190,17 +190,17 @@ function StoryGenerator() {
         {
           title: "A Promise Made",
           content: "Max promised to help his friend find a lost treasure, showing loyalty and dedication.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Challenges Faced",
           content: "Despite many challenges, Max remained loyal to his friend and never gave up.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Treasure Found",
           content: "Max's loyalty paid off when they finally found the treasure and celebrated together.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Loyalty strengthens friendships and helps us achieve our goals."
@@ -211,17 +211,17 @@ function StoryGenerator() {
         {
           title: "A Village in Need",
           content: "Maya traveled to a village in need of help and showed compassion by caring for the sick.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Healing Hands",
           content: "Maya's compassionate nature helped her heal many villagers and bring hope to the community.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "A Grateful Village",
           content: "The villagers thanked Maya for her compassion and kindness, making her feel fulfilled.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Compassion can heal and bring hope to those in need."
@@ -232,17 +232,17 @@ function StoryGenerator() {
         {
           title: "A Lesson Learned",
           content: "Sam learned an important moral lesson from his mentor about honesty and integrity.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "Facing Temptation",
           content: "Sam faced a difficult situation but remembered his mentor's teachings and chose the right path.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         },
         {
           title: "A Better Person",
           content: "Sam's moral choices helped him become a better person and earn the respect of others.",
-          image: "../images/mouse.png"
+          image: "../images/bg.jpg"
         }
       ],
       moral: "Moral values guide us to make the right choices in life."
