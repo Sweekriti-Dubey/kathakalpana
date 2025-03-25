@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import { Book, Star, Users, Info, Volume2 } from 'lucide-react';
-
+import logoImage from './images/logobg.png'; // Import the logo image
+import mouseImage from './images/mouse.png'; // Import the mouse image
 
 function App() {
   return (
@@ -24,16 +25,17 @@ function App() {
 function Navbar() {
   return (
     <nav className="navbar">
-  <div className="logo"></div> {/* Logo Div */}
-  <h1 className="title">Story Buddy</h1> {/* Title Separate */}
-  <div className="nav-links">
-    <Link to="/">Home</Link>
-    <Link to="/generate">Create Story</Link>
-    <Link to="/testimonials">Testimonials</Link>
-    <Link to="/about">About Us</Link>
-  </div>
-</nav>
-
+      <div className="logo">
+        <img src={logoImage} alt="Logo" className="logo-image" /> {/* Use the imported logo image */}
+        <h1>Story Buddy</h1>
+      </div>
+      <div className="nav-links">
+        <Link to="/">Home</Link>
+        <Link to="/generate">Create Story</Link>
+        <Link to="/testimonials">Testimonials</Link>
+        <Link to="/about">About Us</Link>
+      </div>
+    </nav>
   );
 }
 
@@ -85,17 +87,17 @@ function StoryGenerator() {
         {
           title: "The Mysterious House",
           content: "Emma noticed the old house at the end of the street always seemed different. Its windows looked like eyes watching her every move.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Strange Sounds",
           content: "At night, whispers echoed through the walls. Emma wondered if the house was trying to tell her something important.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "The Secret Revealed",
           content: "As Emma discovered the house's hidden story, she realized some mysteries are better left unsolved.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Curiosity can be both a gift and a challenge."
@@ -106,17 +108,17 @@ function StoryGenerator() {
         {
           title: "A Magical Discovery",
           content: "Zara found a strange map that seemed to glow under moonlight, leading to an incredible adventure beyond imagination.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "The Cosmic Journey",
           content: "Riding a ship made of stardust, Zara traveled through galaxies, meeting creatures from distant worlds.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Home Again",
           content: "With newfound wisdom, Zara returned home, knowing the universe is vast and full of wonder.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Every journey teaches us something new about ourselves."
@@ -127,17 +129,17 @@ function StoryGenerator() {
         {
           title: "Ancient Egypt",
           content: "Alex found a time machine and traveled back to ancient Egypt, where he met pharaohs and explored pyramids.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Medieval Europe",
           content: "In medieval Europe, Alex witnessed knights in shining armor and grand castles.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "The Future",
           content: "Alex's journey ended in a futuristic city, filled with advanced technology and flying cars.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "History teaches us valuable lessons for the future."
@@ -148,17 +150,17 @@ function StoryGenerator() {
         {
           title: "The Quest Begins",
           content: "Sir Cedric embarked on a quest to save the kingdom, always showing respect to everyone he met.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "The Dragon's Lair",
           content: "Even when facing a fierce dragon, Sir Cedric treated it with respect, earning its trust.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "The Kingdom Saved",
           content: "Sir Cedric's respectful nature helped him save the kingdom and become a beloved hero.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Respect can build strong relationships and solve conflicts."
@@ -169,17 +171,17 @@ function StoryGenerator() {
         {
           title: "A New Friend",
           content: "Lila met a lonely alien on her space adventure and showed empathy by understanding its feelings.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Helping Hands",
           content: "Lila and the alien worked together to fix the alien's spaceship, showing empathy and teamwork.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "A Heartfelt Goodbye",
           content: "Lila's empathy helped her form a lasting friendship with the alien, even as they said goodbye.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Empathy helps us connect with others and build meaningful relationships."
@@ -190,17 +192,17 @@ function StoryGenerator() {
         {
           title: "A Promise Made",
           content: "Max promised to help his friend find a lost treasure, showing loyalty and dedication.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Challenges Faced",
           content: "Despite many challenges, Max remained loyal to his friend and never gave up.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Treasure Found",
           content: "Max's loyalty paid off when they finally found the treasure and celebrated together.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Loyalty strengthens friendships and helps us achieve our goals."
@@ -211,17 +213,17 @@ function StoryGenerator() {
         {
           title: "A Village in Need",
           content: "Maya traveled to a village in need of help and showed compassion by caring for the sick.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Healing Hands",
           content: "Maya's compassionate nature helped her heal many villagers and bring hope to the community.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "A Grateful Village",
           content: "The villagers thanked Maya for her compassion and kindness, making her feel fulfilled.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Compassion can heal and bring hope to those in need."
@@ -232,17 +234,17 @@ function StoryGenerator() {
         {
           title: "A Lesson Learned",
           content: "Sam learned an important moral lesson from his mentor about honesty and integrity.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "Facing Temptation",
           content: "Sam faced a difficult situation but remembered his mentor's teachings and chose the right path.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         },
         {
           title: "A Better Person",
           content: "Sam's moral choices helped him become a better person and earn the respect of others.",
-          image: "../images/bg.jpg"
+          image: mouseImage // Use the imported mouse image
         }
       ],
       moral: "Moral values guide us to make the right choices in life."
