@@ -760,6 +760,768 @@ body {
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
+  /* Global Dark Theme Styles */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+:root {
+  --primary-color: #4A3F6D;        /* Deep, rich purple */
+  --secondary-color: #FF6B9E;      /* Vibrant pink */
+  --background-color: #121212;     /* Very dark background */
+  --card-background: #1E1E1E;      /* Slightly lighter dark background for cards */
+  --text-color: #E0E0E0;           /* Light grey text for readability */
+  --accent-color: #7E57C2;         /* Soft purple accent */
+  --success-color: #4CAF50;        /* Green for positive interactions */
+  --warning-color: #FF9800;        /* Orange for warnings */
+  --error-color: #F44336;          /* Red for errors */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 3px;
+  transition: outline 0.2s ease;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  background: 
+    linear-gradient(
+      -45deg, 
+      var(--background-color), 
+      var(--primary-color), 
+      var(--secondary-color)
+    );
+  background-size: 400% 400%;
+  animation: subtle-gradient-shift 15s ease infinite;
+  min-height: 100vh;
+}
+
+/* Gradient Animation */
+@keyframes subtle-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* App Container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: rgba(30, 30, 30, 0.9);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  min-height: 100vh;
+}
+
+/* Navbar Styles */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.logo {
+  width: 100px;
+  height: 100px;
+  background-image: url('../images/logobg.png');
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 6px rgba(18, 1, 16, 0.9);
+}
+
+.title {
+  margin-left: 15px; /* Moves the title away from the logo */
+  font-size: 1.5em;
+  color: var(--text-color);
+}
+
+
+
+.nav-links a {
+  color: #f6ebf5;
+  text-decoration: none;
+  margin: 0 15px;
+  position: relative;
+  font-weight: 300;
+}
+
+.nav-links a:hover {
+  color: #FF6B9E; /* Change the color on hover */
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -5px;
+  left: 0;
+  background-color: var(--secondary-color);
+  transition: width 0.3s ease;
+}
+
+
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* Home Page Styles */
+.home-page {
+  text-align: center;
+  padding: 50px 20px;
+}
+
+/* Performance Optimization */
+.hero-section, 
+.feature, 
+.story-chapter,
+.testimonial-card {
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+
+/* Common Interactive Element Styles */
+.cta-button, 
+.genre-selection button, 
+.audio-btn {
+  position: relative;
+  overflow: hidden;
+  will-change: transform, box-shadow;
+  cursor: pointer;
+
+  .cta-button::before,
+.genre-selection button::before,
+.audio-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg, 
+    transparent, 
+    rgba(255,255,255,0.2), 
+    transparent
+  );
+  transition: all 0.6s ease;
+}
+
+.cta-button:hover::before,
+.genre-selection button:hover::before,
+.audio-btn:hover::before {
+  left: 100%;
+}
+
+}
+
+/* Enhanced Hover Effects */
+.feature:hover,
+.chapter-image:hover,
+.testimonial-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+
+
+/* Existing CSS from previous file continues... */
+/* [All previous CSS remains the same, with the additions above] */
+
+/* Navbar Styles (with minor adjustments) */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background-color: rgba(105, 55, 121, 0.5);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  
+}
+
+/* Logo Animation */
+.logo img {
+  transition: transform 0.3s ease;
+}
+
+.logo img:hover {
+  transform: rotate(5deg) scale(1.05);
+}
+
+/* Genre Selection Hover States */
+.genre-selection button {
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.genre-selection button:hover {
+  transform: scale(1.05) rotate(3deg);
+}
+
+/* Additional Micro-interactions */
+.chapter-number {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chapter-number:hover {
+  transform: scale(1.1) rotate(15deg);
+}
+
+/* Accessibility Enhancements */
+.nav-links a {
+  position: relative;
+  text-decoration: none;
+  color: var(--text-color);
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+.nav-links a:hover,
+.nav-links a:focus {
+  background-color: rgba(255, 107, 158, 0.2);
+  color: var(--secondary-color);
+}
+
+/* Update the hero-section styles in the existing App.css */
+.hero-section {
+  background-color: var(--card-background);
+  padding: 60px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  margin-bottom: 40px;
+  position: relative;
+  overflow: hidden;
+  background-image: url('../images/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--background-color);
+  opacity: 0.7; /* Adjust this value to control the opacity */
+  z-index: 1;
+}
+
+.hero-section > * {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-section h1 {
+  color: var(--secondary-color);
+  font-size: 3em;
+  margin-bottom: 20px;
+  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.hero-section p {
+  color: var(--text-color);
+  margin-bottom: 30px;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--secondary-color);
+  color: var(--background-color);
+  padding: 12px 25px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(255, 107, 158, 0.4);
+}
+
+.cta-button:hover {
+  transform: translateY(-3px);
+  background-color: var(--accent-color);
+  box-shadow: 0 6px 20px rgba(126, 87, 194, 0.5);
+}
+
+.features-section {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.feature {
+  background-color: var(--card-background);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  transition: transform 0.3s ease;
+  flex: 1 1 calc(33.333% - 40px);
+  max-width: calc(33.333% - 40px);
+}
+
+.feature:hover {
+  transform: scale(1.05);
+}
+
+.feature svg {
+  color: var(--secondary-color);
+  margin-bottom: 15px;
+}
+
+.feature h3 {
+  color: var(--secondary-color);
+  margin-bottom: 10px;
+}
+
+.feature p {
+  color: var(--text-color);
+}
+
+/* Story Generator Styles */
+.story-generator {
+  background-color: var(--card-background);
+  padding: 40px;
+  border-radius: 20px;
+  margin: 40px 0;
+}
+
+.genre-selection {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.genre-selection button {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.genre-selection button.selected {
+  background-color: var(--secondary-color);
+  color: var(--background-color);
+}
+
+.genre-selection button:hover {
+  transform: scale(1.05);
+}
+/* Story Generator Specific Styles */
+.generated-story {
+  background-color: var(--card-background);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  margin-top: 30px;
+}
+
+.story-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid var(--secondary-color);
+  padding-bottom: 15px;
+}
+
+.story-header h3 {
+  color: var(--secondary-color);
+  font-size: 2em;
+  margin: 0;
+}
+
+.audio-btn {
+  display: flex;
+  align-items: center;
+  background-color: var(--secondary-color);
+  color: var(--background-color);
+  padding: 10px 20px;
+  border-radius: 30px;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.audio-btn:hover {
+  transform: scale(1.05);
+  background-color: var(--accent-color);
+}
+
+.story-chapters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.story-chapter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  gap: 30px;
+}
+
+.chapter-header {
+  border-bottom: 2px solid var(--secondary-color);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.chapter-header h4 {
+  color: var(--secondary-color);
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.chapter-image {
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 5px solid var(--secondary-color);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.chapter-image:hover {
+  transform: scale(1.05) rotate(3deg);
+}
+
+.chapter-number {
+  background-color: var(--secondary-color);
+  color: var(--background-color);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-top: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.chapter-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chapter-content p {
+  color: var(--text-color);
+  line-height: 1.7;
+  margin: 0;
+  text-align: justify;
+}
+
+.story-moral {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 30px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.story-moral h4 {
+  color: var(--secondary-color);
+  margin-bottom: 15px;
+}
+
+.story-moral p {
+  color: var(--text-color);
+  font-style: italic;
+}
+
+
+
+/* Testimonials Styles */
+.testimonials {
+  background-color: var(--card-background);
+  padding: 50px 20px;
+  border-radius: 20px;
+  margin: 40px 0;
+}
+
+.testimonial-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.testimonial-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  text-align: center;
+}
+
+.testimonial-card img {
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  border: 3px solid var(--secondary-color);
+}
+
+.testimonial-card p {
+  color: var(--text-color);
+  font-style: italic;
+  margin: 15px 0;
+}
+
+.testimonial-card h4 {
+  color: var(--secondary-color);
+}
+
+/* About Us Styles */
+.about-us {
+  background-color: var(--card-background);
+  padding: 50px 20px;
+  border-radius: 20px;
+  margin: 40px 0;
+}
+
+.mission p {
+  color: var(--text-color);
+  max-width: 800px;
+  margin: 0 auto 30px;
+}
+
+.team-members {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.team-member {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  flex: 1 1 calc(33.333% - 40px);
+  max-width: calc(33.333% - 40px);
+}
+
+.team-member img {
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  border: 3px solid var (--secondary-color);
+}
+
+.team-member h4 {
+  color: var(--secondary-color);
+  margin: 15px 0 5px;
+}
+
+.team-member p {
+  color: var(--text-color);
+}
+
+/* Footer Styles */
+.app-footer {
+  background-color: rgba(74, 63, 109, 0.8);
+  color: var(--text-color);
+  text-align: center;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 768px) {
+  /* Improved Navbar Responsiveness */
+  .navbar {
+    flex-direction: column;
+    padding: 10px;
+    position: relative;
+  }
+
+  .navbar-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 15px;
+  }
+
+  .logo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .title {
+    font-size: 1.2em;
+    margin-left: 0;
+    text-align: center;
+  }
+
+  /* Responsive Typography */
+  body {
+    font-size: 14px;
+  }
+
+  .hero-section {
+    padding: 30px 15px;
+  }
+
+  .hero-section h1 {
+    font-size: 2em;
+  }
+
+  .hero-section p {
+    font-size: 0.9em;
+  }
+
+  /* Responsive Sections */
+  .features-section,
+  .testimonial-grid,
+  .team-members {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .feature,
+  .testimonial-card,
+  .team-member {
+    flex: 1 1 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  /* Story Generator Adjustments */
+  .story-generator {
+    padding: 20px;
+  }
+
+  .genre-selection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .genre-selection button {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .story-chapters {
+    grid-template-columns: 1fr;
+  }
+
+  .story-chapter {
+    padding: 15px;
+  }
+
+  .chapter-image {
+    max-width: 200px;
+  }
+
+  /* Navigation Links */
+  .nav-links {
+    width: 100%;
+    margin-top: 15px;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 12px;
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  /* Compact Footer */
+  .app-footer {
+    padding: 15px;
+    font-size: 0.9em;
+  }
+
+  /* Form and Input Responsiveness */
+  input, 
+  textarea, 
+  select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* Ensure full-width buttons */
+  .cta-button,
+  .audio-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Specific Mobile Interaction Improvements */
+@media (max-width: 768px) {
+  /* Increase touch target sizes */
+  .cta-button,
+  .genre-selection button,
+  .nav-links a {
+    min-height: 44px; /* WCAG accessibility recommendation */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Reduce animations on mobile for performance */
+  .hero-section,
+  .feature,
+  .testimonial-card {
+    transition: none;
+  }
+
+  /* Prevent text overflow */
+  h1, h2, h3, h4, p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
   .navbar {
     flex-direction: column;
     text-align: center;
@@ -771,6 +1533,21 @@ body {
     justify-content: center;
     gap: 10px;
   }
+
+  .audio-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Fade-in Animation */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+
+
 
   .audio-btn {
     width: 100%;
