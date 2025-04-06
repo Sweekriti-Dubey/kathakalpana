@@ -38,11 +38,18 @@ def generate():
         raw_story = generate_story(genre, chapters, token)
         chapter_data = split_chapters(raw_story)
 
+        if not chapter_data:
+            raise ValueError("No chapters were generated. Possibly bad response from text model.")
+
         result = []
         for idx, (title, content) in enumerate(chapter_data, 1):
             img_prompt = extract_image_prompt(content)
-            img_bytes = generate_image(img_prompt, token)
-            img_b64 = image_bytes_to_base64(img_bytes)
+            try:
+                img_bytes = generate_image(img_prompt, token)
+                img_b64 = image_bytes_to_base64(img_bytes)
+            except Exception as e:
+                print(f"⚠️ Image generation failed for chapter {idx}: {e}")
+                img_b64 = ""
 
             result.append({
                 "chapter": title,
@@ -58,7 +65,5 @@ def generate():
         return jsonify({"error": "An error occurred while generating the story."}), 500
 
 if __name__ == "__main__":
-    # Use Cloud Run-provided PORT (default to 8080)
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
-

@@ -18,6 +18,8 @@ def generate_story(genre, chapters, token):
 
     try:
         result = response.json()
+        print("🧪 Parsed result:", result)
+
         if isinstance(result, list) and "generated_text" in result[0]:
             return result[0]["generated_text"]
         elif "error" in result:
@@ -57,8 +59,7 @@ def generate_image(prompt, token):
     )
 
     if response.status_code != 200:
-        print(f"❌ Image generation failed: {response.status_code} - {response.text}")
-        raise Exception("Image generation failed")
+        raise Exception(f"Image generation failed: {response.status_code} - {response.text}")
 
     print("✅ Image generated successfully.")
     return BytesIO(response.content).getvalue()
