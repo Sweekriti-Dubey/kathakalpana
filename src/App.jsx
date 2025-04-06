@@ -240,6 +240,8 @@ function AboutUs() {
 
           At StoryBuddy, our mission is simple:
           Make storytelling magical and accessible for every child.
+
+          
       </p>
       <h3>Our Team</h3>
       <div className="team-members">
