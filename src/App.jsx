@@ -233,8 +233,13 @@ function AboutUs() {
     <div className="about-us">
       <h2>About Story Buddy</h2>
       <p className="mission">
-        Story Buddy sparks imagination through interactive, educational storytelling.
-        Every child has a unique story waiting to be told.
+        
+          StoryBuddy is your little one’s storytelling companion — designed to spark imagination, creativity, and joy! Whether it’s bedtime or playtime, StoryBuddy lets kids explore magical tales across different genres, complete with vivid images that bring every story to life.
+
+          We believe stories are powerful. They teach, inspire, and create beautiful memories. That’s why we built StoryBuddy — a fun, easy-to-use web app where kids (and parents!) can choose a genre and enjoy personalized stories anytime, anywhere.
+
+          At StoryBuddy, our mission is simple:
+          Make storytelling magical and accessible for every child.
       </p>
       <h3>Our Team</h3>
       <div className="team-members">
