@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import About from './About';
 
 import './App.css';
 import { Book, Star, Users, Info, Volume2 } from 'lucide-react';
