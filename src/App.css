@@ -65,16 +65,21 @@ body {
 /* Navbar Styles */
 .navbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  padding: 20px 40px;
+  background-color: rgba(105, 55, 121, 0.5);
+  backdrop-filter: blur(10px);
+  /* Remove the sticky positioning */
+  position: relative; /* Change from sticky to relative */
+  top: 0;
+  z-index: 100;
 }
 
 .logo {
-  width: 100px;
-  height: 100px;
-  background-image: url('../images/logobg.png');
+  width: 150px;
+  height: 150px;
+  background-image: url('../images/logo.jpg');
   background-size: cover;
   background-position: center;
   box-shadow: 0 4px 6px rgba(18, 1, 16, 0.9);
@@ -432,6 +437,7 @@ body {
   margin-bottom: 25px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   gap: 30px;
+
 }
 
 
@@ -439,6 +445,7 @@ body {
   border-bottom: 2px solid var(--secondary-color);
   padding-bottom: 10px;
   margin-bottom: 15px;
+  
 }
 
 .chapter-header h4 {
@@ -448,13 +455,10 @@ body {
 }
 
 .chapter-image {
-  width: 100%;
-  max-width: 250px;
-  height: auto;
+  width: 40vw;
+  max-width: 100%;
+  height: 80%;
   object-fit: cover;
-  border-radius: 50%;
-  border: 5px solid var(--secondary-color);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
@@ -614,6 +618,7 @@ body {
   .navbar {
     flex-direction: column;
     text-align: center;
+    
   }
 
   .nav-links {
@@ -722,13 +727,7 @@ body {
 @media (max-width: 768px) {
   /* Increase touch target sizes */
   .cta-button,
-  .genre-selection button,
-  .nav-links a {
-    min-height: 44px; /* WCAG accessibility recommendation */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+
 
   /* Reduce animations on mobile for performance */
   .hero-section,
@@ -736,7 +735,7 @@ body {
   .testimonial-card {
     transition: none;
   }
-
+  
   /* Prevent text overflow */
   h1, h2, h3, h4, p {
     word-wrap: break-word;
@@ -758,5 +757,16 @@ body {
   }
 }
 
+.genre-input-section input {
+  background-color: var(--card-background); /* Change to your desired color */
+  color: var(--text-color); /* Text color for readability */
+  border: 2px solid var(--secondary-color); /* Border color */
+  border-radius: 15px; /* Increase the border radius */
+  padding: 10px 15px; /* Add padding for better spacing */
+  font-size: 16px; /* Adjust
+} font size */
+  width: 100%; /* Full width for better responsiveness */
+  transition: all 0.3s ease; /* Smooth transition for hover effect */
+}
 
 
