@@ -15,8 +15,8 @@ function Login({ onLogin }) {
 
   
     const endpoint = isLoginMode 
-      ? 'http://127.0.0.1:8000/login' 
-      : 'http://127.0.0.1:8000/signup';
+      ? 'https://kathakalpana-api.onrender.com/login' 
+      : 'https://kathakalpana-api.onrender.com/signup';
 
     try {
       if (isLoginMode) {

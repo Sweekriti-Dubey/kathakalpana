@@ -91,7 +91,7 @@ function StoryGenerator({ token }) {
 
     try {
       // FIX: Added Authorization Header here
-      const response = await axios.post("http://localhost:8000/generate", 
+      const response = await axios.post("https://kathakalpana-api.onrender.com", 
         { genre: genreInput, chapters: parseInt(chapterCount) },
         { headers: { Authorization: `Bearer ${token}` } } 
       );
@@ -108,7 +108,7 @@ function StoryGenerator({ token }) {
     if (!generatedStory) return;
     setSaving(true);
     try {
-      await axios.post("http://localhost:8000/save_story", 
+      await axios.post("https://kathakalpana-api.onrender.com/save_story", 
         generatedStory, 
         { headers: { Authorization: `Bearer ${token}` } }
       );

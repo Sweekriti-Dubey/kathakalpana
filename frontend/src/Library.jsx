@@ -15,7 +15,7 @@ function Library() {
 
   const fetchLibrary = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/my_stories', {
+      const response = await axios.get('https://kathakalpana-api.onrender.com/my_stories', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStories(response.data);

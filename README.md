@@ -62,7 +62,7 @@ pip install -r requirements.txt
 
 # Start the server
 uvicorn main:app --reload
-The backend will run at http://127.0.0.1:8000
+The backend will run at https://kathakalpana-api.onrender.com
 
 -------------------------------------------------------------------------
 3. Frontend Setup
