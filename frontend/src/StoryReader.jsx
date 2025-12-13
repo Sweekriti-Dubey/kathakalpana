@@ -5,10 +5,9 @@ import { Volume2, ArrowLeft } from 'lucide-react';
 function StoryReader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const story = location.state?.story; // Get the story passed from Library
+  const story = location.state?.story; 
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // If no story found (e.g., user refreshed the page), go back to library
   useEffect(() => {
     if (!story) {
       navigate('/library');

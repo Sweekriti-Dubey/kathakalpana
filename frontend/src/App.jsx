@@ -77,7 +77,7 @@ function StoryGenerator({ token }) {
   const [genreInput, setGenreInput] = useState('');
   const [generatedStory, setGeneratedStory] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false); // New state for saving
+  const [saving, setSaving] = useState(false); 
   const [chapterCount, setChapterCount] = useState(3);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const navigate = useNavigate();
@@ -90,8 +90,7 @@ function StoryGenerator({ token }) {
     setIsSpeaking(false);
 
     try {
-      // FIX: Added Authorization Header here
-      const response = await axios.post("https://kathakalpana-api.onrender.com", 
+      const response = await axios.post("https://kathakalpana-api.onrender.com/generate", 
         { genre: genreInput, chapters: parseInt(chapterCount) },
         { headers: { Authorization: `Bearer ${token}` } } 
       );
