@@ -27,7 +27,7 @@ SECRET_KEY = "supersecretkey_change_this_in_production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
-MAIN_CHARACTER_VISUAL = "a cute small blue tit bird with a fluffy yellow belly and big eyes"
+# NOTE: We removed MAIN_CHARACTER_VISUAL because we generate it dynamically now!
 
 app = FastAPI()
 
@@ -128,10 +128,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # --- STORY GENERATION CORE ---
 
-# --- REPLACEMENT FUNCTION ---
-
 def download_image_hf(scene_action_prompt, character_desc):
-    # 1. USE THE FASTER MODEL (SD 1.5) - Much more reliable for free tier
+    # USE THE FASTER MODEL (SD 1.5)
     API_URL = "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5"
     headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
     
@@ -174,15 +172,18 @@ async def generate_story(request: StoryRequest, current_user: str = Depends(get_
 
         client = Groq(api_key=GROQ_API_KEY)
         
+        # SYSTEM PROMPT: Tells AI to output JSON
         system_prompt = (
             "You are a children's author and Art Director. Output valid JSON. "
-            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"chapters\": [ { \"title\": \"...\", \"content\": \"...\", \"image_action_prompt\": \"...\" } ] }"
+            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"main_character_visual\": \"...\", \"chapters\": [ { \"title\": \"...\", \"content\": \"...\", \"image_action_prompt\": \"...\" } ] }"
         )
+        
+        # USER PROMPT: Asks AI to invent a character visual
         user_prompt = (
             f"Write a {request.genre} story with {request.chapters} chapters. "
-            f"The main character is {MAIN_CHARACTER_VISUAL}. "
-            "1. 'content': The story text (~100 words). "
-            "2. 'image_action_prompt': Describe ONLY the action and background for the image. Do NOT describe the main character's appearance again, just what they are doing and where they are. (e.g., 'flying over a green forest', 'sitting on a branch talking to a squirrel')."
+            "1. First, invent a specific, cute visual description for the MAIN CHARACTER based on the genre (e.g., 'a brave orange tabby cat in a space suit'). Save this in 'main_character_visual'. "
+            "2. 'content': The story text (~100 words). "
+            "3. 'image_action_prompt': Describe ONLY the action and background. Do NOT describe the character again. (e.g., 'flying over a green forest')."
         )
 
         chat_completion = client.chat.completions.create(
@@ -194,10 +195,17 @@ async def generate_story(request: StoryRequest, current_user: str = Depends(get_
 
         story_data = json.loads(chat_completion.choices[0].message.content)
         
-        # Download images using the new consistency method
+        # EXTRACT the new dynamic character description
+        character_desc = story_data.get("main_character_visual", "a cute cartoon character")
+        print(f"=== Main Character: {character_desc} ===")
+
+        # Download images using the new logic
         for chapter in story_data["chapters"]:
             action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
-            img = download_image_hf(action_prompt)
+            
+            # --- THIS WAS THE FIX: Passing BOTH arguments ---
+            img = download_image_hf(action_prompt, character_desc)
+            
             chapter["image"] = img if img else "https://placehold.co/512x512/png?text=Image+Unavailable"
 
         return story_data
