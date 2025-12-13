@@ -128,30 +128,42 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # --- STORY GENERATION CORE ---
 
-def download_image_hf(scene_action_prompt):
-    API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
+# --- REPLACEMENT FUNCTION ---
+
+def download_image_hf(scene_action_prompt, character_desc):
+    # 1. USE THE FASTER MODEL (SD 1.5) - Much more reliable for free tier
+    API_URL = "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5"
     headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
     
     final_prompt = (
         f"children's book illustration, cute vector style, soft colors, masterpiece, "
-        f"{MAIN_CHARACTER_VISUAL}, "  
-        f"{scene_action_prompt}, "      
+        f"{character_desc}, "
+        f"{scene_action_prompt}, "
         f"white background"
     )
     
-    print(f"   -> Requesting Image for action: [{scene_action_prompt[:30]}...]")
+    print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
 
-    for attempt in range(3):
+    for attempt in range(5): 
         try:
-            response = requests.post(API_URL, headers=headers, json={"inputs": final_prompt}, timeout=25)
+            response = requests.post(API_URL, headers=headers, json={"inputs": final_prompt}, timeout=45)
+            
             if response.status_code == 200:
                 return f"data:image/jpeg;base64,{base64.b64encode(response.content).decode('utf-8')}"
+            
             elif response.status_code == 503:
-                print("      -> Model loading, waiting...")
-                time.sleep(8)
+                print("      -> Model loading (503)... waiting 5s")
+                time.sleep(5)
+            
+            else:
+                print(f"      -> FAILED with Status: {response.status_code}. Response: {response.text}")
+                time.sleep(2)
+
         except Exception as e:
-             print(f"      -> Error: {e}")
+             print(f"      -> Connection Error: {e}")
              time.sleep(2)
+             
+    print("      -> Gave up on image after 5 attempts.")
     return None
 
 @app.post("/generate")
