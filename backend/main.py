@@ -22,7 +22,7 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MONGO_URL = os.getenv("MONGO_URL")
 
-SECRET_KEY = "supersecretkey_change_this_in_production"
+SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey_change_this_in_production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
