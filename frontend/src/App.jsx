@@ -188,12 +188,20 @@ function StoryGenerator({ token }) {
             {generatedStory.chapters.map((chapter, index) => (
               <div key={index} className="story-chapter">
                 <div className="chapter-image-container">
-                  {/* CHANGED: We now generate the URL here using the seed & prompt */}
+                  {console.log("Image URL:", getImageUrl(chapter.image_prompt, chapter.image_seed))}
+
                   <img 
                     src={getImageUrl(chapter.image_prompt, chapter.image_seed)} 
                     alt="chapter" 
                     className="chapter-image" 
-                    loading="lazy" 
+                    loading="lazy"
+                    style={{ 
+                      width: '100%', 
+                      height: '300px', 
+                      objectFit: 'cover', 
+                      borderRadius: '10px',
+                      backgroundColor: '#f0f0f0' 
+                    }}
                   />
                 </div>
                 <div className="chapter-content">
