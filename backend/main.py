@@ -20,7 +20,6 @@ from jose import JWTError, jwt
 # --- CONFIGURATION ---
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-# HF_TOKEN is no longer needed for images!
 MONGO_URL = os.getenv("MONGO_URL")
 
 SECRET_KEY = "supersecretkey_change_this_in_production"
@@ -127,34 +126,37 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # --- STORY GENERATION CORE ---
 
 def generate_image_pollinations(scene_action_prompt, character_desc):
-    try:
-        # 1. Combine styles, character, and action into one prompt
-        full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"
-        
-        # 2. URL encode the prompt (e.g., spaces become %20)
-        encoded_prompt = requests.utils.quote(full_prompt)
-        
-        # 3. Generate a random seed to ensure unique images per chapter
-        random_seed = random.randint(1, 99999)
-        
-        # 4. Construct the Pollinations URL
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model=flux"
-        
-        print(f"   -> Requesting Image (Pollinations): {scene_action_prompt[:30]}...")
+    """
+    Uses Pollinations.ai with RETRY logic and longer timeouts.
+    """
+    # 1. Combine prompt
+    full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"
+    encoded_prompt = requests.utils.quote(full_prompt)
+    
+    print(f"   -> Requesting Image (Pollinations): {scene_action_prompt[:30]}...")
 
-        # 5. Download the actual image data
-        response = requests.get(image_url, timeout=30)
-        
-        if response.status_code == 200:
-            base64_image = base64.b64encode(response.content).decode('utf-8')
-            return f"data:image/jpeg;base64,{base64_image}"
-        else:
-            print(f"      -> Pollinations Error Status: {response.status_code}")
-            return None
+    # 2. Retry Loop (Try 3 times before giving up)
+    for attempt in range(1, 4):
+        try:
+            random_seed = random.randint(1, 99999)
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model=flux"
+            
+            # INCREASED TIMEOUT to 60 seconds
+            response = requests.get(image_url, timeout=60)
+            
+            if response.status_code == 200:
+                base64_image = base64.b64encode(response.content).decode('utf-8')
+                return f"data:image/jpeg;base64,{base64_image}"
+            else:
+                print(f"      -> Attempt {attempt} failed: Status {response.status_code}")
+                time.sleep(2) # Wait a bit before retry
 
-    except Exception as e:
-        print(f"      -> Image Download Error: {e}")
-        return None
+        except Exception as e:
+            print(f"      -> Attempt {attempt} error: {e}")
+            time.sleep(2)
+            
+    print("      -> GAVE UP on image after 3 attempts.")
+    return None
 
 @app.post("/generate")
 async def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
@@ -169,9 +171,9 @@ async def generate_story(request: StoryRequest, current_user: str = Depends(get_
         
         user_prompt = (
             f"Write a {request.genre} story with {request.chapters} chapters. "
-            "1. First, invent a specific, cute visual description for the MAIN CHARACTER based on the genre (e.g., 'a brave orange tabby cat in a space suit'). Save this in 'main_character_visual'. "
+            "1. First, invent a specific, cute visual description for the MAIN CHARACTER based on the genre. Save this in 'main_character_visual'. "
             "2. 'content': The story text (~100 words). "
-            "3. 'image_action_prompt': Describe ONLY the action and background. Do NOT describe the character again. (e.g., 'flying over a green forest')."
+            "3. 'image_action_prompt': Describe ONLY the action and background. Do NOT describe the character again."
         )
 
         chat_completion = client.chat.completions.create(
@@ -182,18 +184,18 @@ async def generate_story(request: StoryRequest, current_user: str = Depends(get_
         )
 
         story_data = json.loads(chat_completion.choices[0].message.content)
-        
-        # Extract dynamic character
         character_desc = story_data.get("main_character_visual", "a cute cartoon character")
         print(f"=== Main Character: {character_desc} ===")
 
-        # Loop through chapters and generate images
         for chapter in story_data["chapters"]:
             action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
             
+            # Generate Image
             img = generate_image_pollinations(action_prompt, character_desc)
-            
             chapter["image"] = img if img else "https://placehold.co/512x512/png?text=Image+Unavailable"
+            
+            # IMPORTANT: Sleep 2 seconds between chapters to prevent rate limiting
+            time.sleep(2)
 
         return story_data
 
