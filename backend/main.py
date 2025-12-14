@@ -20,14 +20,12 @@ from jose import JWTError, jwt
 # --- CONFIGURATION ---
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-HF_TOKEN = os.getenv("HF_TOKEN")
+# HF_TOKEN is no longer needed for images!
 MONGO_URL = os.getenv("MONGO_URL")
 
 SECRET_KEY = "supersecretkey_change_this_in_production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 3000
-
-# NOTE: We removed MAIN_CHARACTER_VISUAL because we generate it dynamically now!
 
 app = FastAPI()
 
@@ -128,57 +126,47 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # --- STORY GENERATION CORE ---
 
-def download_image_hf(scene_action_prompt, character_desc):
-    # USE THE FASTER MODEL (SD 1.5)
-    API_URL = "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
-    
-    final_prompt = (
-        f"children's book illustration, cute vector style, soft colors, masterpiece, "
-        f"{character_desc}, "
-        f"{scene_action_prompt}, "
-        f"white background"
-    )
-    
-    print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
+def generate_image_pollinations(scene_action_prompt, character_desc):
+    try:
+        # 1. Combine styles, character, and action into one prompt
+        full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"
+        
+        # 2. URL encode the prompt (e.g., spaces become %20)
+        encoded_prompt = requests.utils.quote(full_prompt)
+        
+        # 3. Generate a random seed to ensure unique images per chapter
+        random_seed = random.randint(1, 99999)
+        
+        # 4. Construct the Pollinations URL
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model=flux"
+        
+        print(f"   -> Requesting Image (Pollinations): {scene_action_prompt[:30]}...")
 
-    for attempt in range(5): 
-        try:
-            response = requests.post(API_URL, headers=headers, json={"inputs": final_prompt}, timeout=45)
-            
-            if response.status_code == 200:
-                return f"data:image/jpeg;base64,{base64.b64encode(response.content).decode('utf-8')}"
-            
-            elif response.status_code == 503:
-                print("      -> Model loading (503)... waiting 5s")
-                time.sleep(5)
-            
-            else:
-                print(f"      -> FAILED with Status: {response.status_code}. Response: {response.text}")
-                time.sleep(2)
+        # 5. Download the actual image data
+        response = requests.get(image_url, timeout=30)
+        
+        if response.status_code == 200:
+            base64_image = base64.b64encode(response.content).decode('utf-8')
+            return f"data:image/jpeg;base64,{base64_image}"
+        else:
+            print(f"      -> Pollinations Error Status: {response.status_code}")
+            return None
 
-        except Exception as e:
-             print(f"      -> Connection Error: {e}")
-             time.sleep(2)
-             
-    print("      -> Gave up on image after 5 attempts.")
-    return None
+    except Exception as e:
+        print(f"      -> Image Download Error: {e}")
+        return None
 
 @app.post("/generate")
 async def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
     try:
         print(f"=== Generating Story: {request.genre} ===")
-        if not HF_TOKEN: raise HTTPException(status_code=500, detail="Missing HF_TOKEN")
-
         client = Groq(api_key=GROQ_API_KEY)
         
-        # SYSTEM PROMPT: Tells AI to output JSON
         system_prompt = (
             "You are a children's author and Art Director. Output valid JSON. "
             "Structure: { \"title\": \"...\", \"moral\": \"...\", \"main_character_visual\": \"...\", \"chapters\": [ { \"title\": \"...\", \"content\": \"...\", \"image_action_prompt\": \"...\" } ] }"
         )
         
-        # USER PROMPT: Asks AI to invent a character visual
         user_prompt = (
             f"Write a {request.genre} story with {request.chapters} chapters. "
             "1. First, invent a specific, cute visual description for the MAIN CHARACTER based on the genre (e.g., 'a brave orange tabby cat in a space suit'). Save this in 'main_character_visual'. "
@@ -195,16 +183,15 @@ async def generate_story(request: StoryRequest, current_user: str = Depends(get_
 
         story_data = json.loads(chat_completion.choices[0].message.content)
         
-        # EXTRACT the new dynamic character description
+        # Extract dynamic character
         character_desc = story_data.get("main_character_visual", "a cute cartoon character")
         print(f"=== Main Character: {character_desc} ===")
 
-        # Download images using the new logic
+        # Loop through chapters and generate images
         for chapter in story_data["chapters"]:
             action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
             
-            # --- THIS WAS THE FIX: Passing BOTH arguments ---
-            img = download_image_hf(action_prompt, character_desc)
+            img = generate_image_pollinations(action_prompt, character_desc)
             
             chapter["image"] = img if img else "https://placehold.co/512x512/png?text=Image+Unavailable"
 
