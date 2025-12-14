@@ -72,7 +72,66 @@ function Navbar({ isLoggedIn, onLogout }) {
   );
 }
 
-// --- UPDATED STORY GENERATOR (The Fix is Here) ---
+// New Component to handle individual image loading state (Handles errors and loading UI)
+const ChapterImageLoader = ({ image_prompt, image_seed }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Helper function to build the image URL
+  const getImageUrl = (prompt, seed) => {
+    if (!prompt || !seed) return "https://loremflickr.com/768/512/cartoon"; // Fallback
+    const encodedPrompt = encodeURIComponent(prompt);
+    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true&model=flux`;
+  };
+
+  const imageUrl = getImageUrl(image_prompt, image_seed);
+
+  // Show a loading UI or error state
+  if (imageError) {
+    return (
+      <div className="image-error-placeholder" style={{ 
+        width: '100%', height: '300px', backgroundColor: '#f8d7da', 
+        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        borderRadius: '10px', color: '#721c24' 
+      }}>
+        Failed to Load Image 🖼️
+      </div>
+    );
+  }
+
+  if (!imageLoaded) {
+    return (
+      <div className="image-loading-placeholder" style={{ 
+        width: '100%', height: '300px', backgroundColor: '#e9ecef', 
+        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+        borderRadius: '10px', color: '#6c757d' 
+      }}>
+        Generating Image... ⏳
+      </div>
+    );
+  }
+
+  // Once loaded, show the actual image
+  return (
+    <img 
+      src={imageUrl}
+      alt="chapter illustration"
+      className="chapter-image"
+      style={{ 
+        width: '100%', 
+        height: '300px', 
+        objectFit: 'cover', 
+        borderRadius: '10px' 
+      }}
+      // These handlers update the state
+      onLoad={() => setImageLoaded(true)}
+      onError={() => setImageError(true)} 
+      loading="lazy"
+    />
+  );
+};
+
+// --- UPDATED STORY GENERATOR ---
 function StoryGenerator({ token }) {
   const [genreInput, setGenreInput] = useState('');
   const [generatedStory, setGeneratedStory] = useState(null);
@@ -110,7 +169,7 @@ function StoryGenerator({ token }) {
     if (!generatedStory) return;
     setSaving(true);
     try {
-      // We save the story (which now contains seeds/prompts instead of full images)
+      // The backend now expects the generatedStory object which contains the prompt/seed
       await axios.post("https://kathakalpana-api.onrender.com/save_story", 
         generatedStory, 
         { headers: { Authorization: `Bearer ${token}` } }
@@ -138,14 +197,6 @@ function StoryGenerator({ token }) {
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
     }
-  };
-
-  // HELPER: Generate URL on the Frontend
-  const getImageUrl = (prompt, seed) => {
-    if (!prompt || !seed) return "https://loremflickr.com/768/512/cartoon"; // Fallback
-    const encodedPrompt = encodeURIComponent(prompt);
-    // Directly call Pollinations from the user's browser
-    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true&model=flux`;
   };
 
   return (
@@ -187,23 +238,14 @@ function StoryGenerator({ token }) {
           <div className="story-chapters">
             {generatedStory.chapters.map((chapter, index) => (
               <div key={index} className="story-chapter">
+                {/* 🟢 CORRECT IMPLEMENTATION: Use the dedicated loader component */}
                 <div className="chapter-image-container">
-                  {console.log("Image URL:", getImageUrl(chapter.image_prompt, chapter.image_seed))}
-
-                  <img 
-                    src={getImageUrl(chapter.image_prompt, chapter.image_seed)} 
-                    alt="chapter" 
-                    className="chapter-image" 
-                    loading="lazy"
-                    style={{ 
-                      width: '100%', 
-                      height: '300px', 
-                      objectFit: 'cover', 
-                      borderRadius: '10px',
-                      backgroundColor: '#f0f0f0' 
-                    }}
+                  <ChapterImageLoader 
+                    image_prompt={chapter.image_prompt} 
+                    image_seed={chapter.image_seed} 
                   />
                 </div>
+
                 <div className="chapter-content">
                   <h4>{chapter.title}</h4>
                   <p>{chapter.content}</p>
