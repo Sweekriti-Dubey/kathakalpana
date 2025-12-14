@@ -91,9 +91,12 @@ function StoryGenerator({ token }) {
 
     try {
       const response = await axios.post("https://kathakalpana-api.onrender.com/generate", 
-        { genre: genreInput, chapters: parseInt(chapterCount) },
-        { headers: { Authorization: `Bearer ${token}` } } 
-      );
+    { genre: genreInput, chapters: parseInt(chapterCount) },
+    { 
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 120000 
+    } 
+);
       setGeneratedStory(response.data);
     } catch (err) {
       console.error("Story generation failed:", err);

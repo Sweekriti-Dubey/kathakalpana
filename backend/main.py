@@ -137,7 +137,7 @@ def generate_image_pollinations(scene_action_prompt, character_desc):
     # Attempt 3 uses 'turbo' (High Speed/Reliability Fallback).
     for attempt in range(1, 4): 
         try:
-            model = "flux" if attempt < 3 else "turbo" 
+            model = "turbo"
             print(f"      -> Attempt {attempt} using model: {model}")
 
             random_seed = random.randint(1, 99999)
