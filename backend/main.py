@@ -133,36 +133,39 @@ def generate_image_pollinations(scene_action_prompt, character_desc):
     full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:400] 
     encoded_prompt = requests.utils.quote(full_prompt)
     
+    # Header disguise
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
     print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
 
-    for attempt in range(1, 4): 
+    # REDUCED ATTEMPTS: Only try 2 times to save time
+    for attempt in range(1, 3): 
         try:
             model = "turbo" 
             random_seed = random.randint(1, 99999)
             image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model={model}"
             
-            response = requests.get(image_url, headers=headers, timeout=30)
+            # --- AGGRESSIVE TIMEOUT ---
+            # If it takes > 10 seconds, kill it. Turbo is usually 3s.
+            # 30s was causing your frontend to timeout.
+            response = requests.get(image_url, headers=headers, timeout=10)
             
             if response.status_code == 200:
                 base64_image = base64.b64encode(response.content).decode('utf-8')
                 return f"data:image/jpeg;base64,{base64_image}"
-            elif response.status_code == 429:
-                print("      -> Rate Limit (429)! Cooling down for 5s...")
-                time.sleep(5) 
             else:
                 print(f"      -> Attempt {attempt} failed: Status {response.status_code}")
-                time.sleep(2)
+                time.sleep(1) # Short wait
 
         except Exception as e:
             print(f"      -> Attempt {attempt} error: {e}")
-            time.sleep(2)
+            time.sleep(1)
             
-    print("      -> GAVE UP. Returning Placeholder.")
-    return "https://placehold.co/768x512/png?text=Image+Unavailable"
+    print("      -> GAVE UP. Switching to Backup Cartoon.")
+    # FALLBACK: Random cute cartoon (Working URL) so the story never fails
+    return "https://loremflickr.com/768/512/cartoon"
 
 @app.post("/generate")
 def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
