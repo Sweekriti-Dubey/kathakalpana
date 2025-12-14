@@ -146,7 +146,6 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
             response_format={"type": "json_object"}
         )
 
-        # Ensure we can handle partial/malformed Groq response
         try:
             story_data = json.loads(chat_completion.choices[0].message.content)
         except json.JSONDecodeError as e:
@@ -157,42 +156,34 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         character_desc = story_data.get("main_character_visual", "a cute cartoon character")
         print(f"=== Main Character: {character_desc} ===")
 
-        # HYBRID APPROACH: Generate Seeds and Prompts, DO NOT CALL POLLINATIONS
         if "chapters" not in story_data or not story_data["chapters"]:
             print("ERROR: Groq output did not contain a 'chapters' array.")
             raise HTTPException(status_code=500, detail="AI failed to generate story chapters.")
 
         for chapter in story_data["chapters"]:
             
-            # 🟢 CRITICAL FIX: Robust prompt extraction with safe fallback
             action_prompt = chapter.get('image_action_prompt')
             
-            # If the primary key is missing, use a safe, generic fallback
             if not action_prompt:
                 action_prompt = "A simple illustration matching the chapter's content."
                 print("WARNING: image_action_prompt was missing. Using generic fallback.")
             
-            # Combine character + action for the final prompt
-            full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {action_prompt}, white background"
+           
+            short_prompt = f"{character_desc}, {action_prompt}"
             
-            # Generate a random seed
             seed = random.randint(1, 99999)
 
-            # Assign these to the chapter object so frontend can use them
-            chapter["image_prompt"] = full_prompt
+            chapter["image_prompt"] = short_prompt
             chapter["image_seed"] = seed
             
-            # Remove the old 'image' field if it exists to avoid confusion
             if "image" in chapter:
                 del chapter["image"]
 
         return story_data
 
     except HTTPException:
-        # Re-raise explicit HTTPExceptions (like login failures or JSON errors)
         raise
     except Exception as e:
-        # Catch all other exceptions (Groq errors, network issues, etc.)
         print(f"CRITICAL ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
