@@ -78,7 +78,6 @@ class StoryRequest(BaseModel):
 class ChapterModel(BaseModel):
     title: str
     content: str
-    # Changed: We store the seed and prompt, not the base64 string
     image_seed: int 
     image_prompt: str 
 
@@ -147,13 +146,31 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
             response_format={"type": "json_object"}
         )
 
-        story_data = json.loads(chat_completion.choices[0].message.content)
+        # Ensure we can handle partial/malformed Groq response
+        try:
+            story_data = json.loads(chat_completion.choices[0].message.content)
+        except json.JSONDecodeError as e:
+            print(f"JSON DECODE ERROR: Groq output was malformed. {e}")
+            raise HTTPException(status_code=500, detail="AI output failed to format correctly.")
+
+
         character_desc = story_data.get("main_character_visual", "a cute cartoon character")
         print(f"=== Main Character: {character_desc} ===")
 
         # HYBRID APPROACH: Generate Seeds and Prompts, DO NOT CALL POLLINATIONS
+        if "chapters" not in story_data or not story_data["chapters"]:
+            print("ERROR: Groq output did not contain a 'chapters' array.")
+            raise HTTPException(status_code=500, detail="AI failed to generate story chapters.")
+
         for chapter in story_data["chapters"]:
-            action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
+            
+            # 🟢 CRITICAL FIX: Robust prompt extraction with safe fallback
+            action_prompt = chapter.get('image_action_prompt')
+            
+            # If the primary key is missing, use a safe, generic fallback
+            if not action_prompt:
+                action_prompt = "A simple illustration matching the chapter's content."
+                print("WARNING: image_action_prompt was missing. Using generic fallback.")
             
             # Combine character + action for the final prompt
             full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {action_prompt}, white background"
@@ -171,7 +188,11 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
 
         return story_data
 
+    except HTTPException:
+        # Re-raise explicit HTTPExceptions (like login failures or JSON errors)
+        raise
     except Exception as e:
+        # Catch all other exceptions (Groq errors, network issues, etc.)
         print(f"CRITICAL ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
