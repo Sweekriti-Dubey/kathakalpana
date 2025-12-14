@@ -126,25 +126,22 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # --- STORY GENERATION CORE ---
 
 def generate_image_pollinations(scene_action_prompt, character_desc):
-    # Truncate prompt to be safe
     full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:400] 
     encoded_prompt = requests.utils.quote(full_prompt)
     
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
     print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
 
-    # We try 3 times. 
-    # Attempts 1 & 2 use 'flux' (Better Quality).
-    # Attempt 3 uses 'turbo' (High Speed/Reliability Fallback).
     for attempt in range(1, 4): 
         try:
-            model = "turbo"
-            print(f"      -> Attempt {attempt} using model: {model}")
-
+            model = "turbo" 
             random_seed = random.randint(1, 99999)
             image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model={model}"
             
-            # Timeout: 30s is enough. If it takes longer, it's likely stuck.
-            response = requests.get(image_url, timeout=30)
+            response = requests.get(image_url, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 base64_image = base64.b64encode(response.content).decode('utf-8')
@@ -160,7 +157,7 @@ def generate_image_pollinations(scene_action_prompt, character_desc):
             print(f"      -> Attempt {attempt} error: {e}")
             time.sleep(2)
             
-    print("      -> GAVE UP on image after 3 attempts.")
+    print("      -> GAVE UP. Returning Placeholder.")
     return "https://placehold.co/768x512/png?text=Image+Unavailable"
 
 @app.post("/generate")
