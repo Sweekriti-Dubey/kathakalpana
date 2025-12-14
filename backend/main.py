@@ -126,34 +126,42 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # --- STORY GENERATION CORE ---
 
 def generate_image_pollinations(scene_action_prompt, character_desc):
-    
+    # Truncate prompt to be safe
     full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:400] 
     encoded_prompt = requests.utils.quote(full_prompt)
     
     print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
 
+    # We try 3 times. 
+    # Attempts 1 & 2 use 'flux' (Better Quality).
+    # Attempt 3 uses 'turbo' (High Speed/Reliability Fallback).
     for attempt in range(1, 4): 
         try:
+            model = "flux" if attempt < 3 else "turbo" 
+            print(f"      -> Attempt {attempt} using model: {model}")
+
             random_seed = random.randint(1, 99999)
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model=flux"
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model={model}"
             
-            response = requests.get(image_url, timeout=60)
+            # Timeout: 30s is enough. If it takes longer, it's likely stuck.
+            response = requests.get(image_url, timeout=30)
             
             if response.status_code == 200:
                 base64_image = base64.b64encode(response.content).decode('utf-8')
                 return f"data:image/jpeg;base64,{base64_image}"
             elif response.status_code == 429:
-                print("      -> Rate Limit (429)! Cooling down for 10s...")
-                time.sleep(10) 
+                print("      -> Rate Limit (429)! Cooling down for 5s...")
+                time.sleep(5) 
             else:
                 print(f"      -> Attempt {attempt} failed: Status {response.status_code}")
                 time.sleep(2)
+
         except Exception as e:
             print(f"      -> Attempt {attempt} error: {e}")
             time.sleep(2)
             
     print("      -> GAVE UP on image after 3 attempts.")
-    return None
+    return "https://placehold.co/768x512/png?text=Image+Unavailable"
 
 @app.post("/generate")
 def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
