@@ -88,7 +88,6 @@ To run this project, you must create a .env file inside the backend folder with 
 ---Code snippet---
 -------------------------------------------------------------------------
 GROQ_API_KEY=your_groq_api_key_here
-HF_TOKEN=your_hugging_face_token_here
 MONGO_URL=your_mongodb_connection_string_here
 -------------------------------------------------------------------------
 
