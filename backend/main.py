@@ -126,31 +126,28 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # --- STORY GENERATION CORE ---
 
 def generate_image_pollinations(scene_action_prompt, character_desc):
-    """
-    Uses Pollinations.ai with RETRY logic and longer timeouts.
-    """
-    # 1. Combine prompt
-    full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"
+    
+    full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:400] 
     encoded_prompt = requests.utils.quote(full_prompt)
     
-    print(f"   -> Requesting Image (Pollinations): {scene_action_prompt[:30]}...")
+    print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
 
-    # 2. Retry Loop (Try 3 times before giving up)
-    for attempt in range(1, 4):
+    for attempt in range(1, 4): 
         try:
             random_seed = random.randint(1, 99999)
             image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model=flux"
             
-            # INCREASED TIMEOUT to 60 seconds
             response = requests.get(image_url, timeout=60)
             
             if response.status_code == 200:
                 base64_image = base64.b64encode(response.content).decode('utf-8')
                 return f"data:image/jpeg;base64,{base64_image}"
+            elif response.status_code == 429:
+                print("      -> Rate Limit (429)! Cooling down for 10s...")
+                time.sleep(10) 
             else:
                 print(f"      -> Attempt {attempt} failed: Status {response.status_code}")
-                time.sleep(2) # Wait a bit before retry
-
+                time.sleep(2)
         except Exception as e:
             print(f"      -> Attempt {attempt} error: {e}")
             time.sleep(2)
@@ -190,12 +187,11 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         for chapter in story_data["chapters"]:
             action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
             
-            # Generate Image
             img = generate_image_pollinations(action_prompt, character_desc)
             chapter["image"] = img if img else "https://placehold.co/512x512/png?text=Image+Unavailable"
             
-            # IMPORTANT: Sleep 2 seconds between chapters to prevent rate limiting
-            time.sleep(2)
+            print("      -> Waiting 5s for safety...")
+            time.sleep(5)
 
         return story_data
 
