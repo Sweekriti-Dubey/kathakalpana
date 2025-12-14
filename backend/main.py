@@ -159,7 +159,7 @@ def generate_image_pollinations(scene_action_prompt, character_desc):
     return None
 
 @app.post("/generate")
-async def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
+def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
     try:
         print(f"=== Generating Story: {request.genre} ===")
         client = Groq(api_key=GROQ_API_KEY)
