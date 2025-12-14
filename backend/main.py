@@ -1,9 +1,6 @@
 import os
 import random
 import json
-import requests
-import base64
-import time
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -21,7 +18,6 @@ from jose import JWTError, jwt
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MONGO_URL = os.getenv("MONGO_URL")
-# HF_TOKEN is NOT needed anymore
 
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey_change_this_in_production")
 ALGORITHM = "HS256"
@@ -82,8 +78,9 @@ class StoryRequest(BaseModel):
 class ChapterModel(BaseModel):
     title: str
     content: str
-    image: Optional[str] = None
-    image_prompt: Optional[str] = None
+    # Changed: We store the seed and prompt, not the base64 string
+    image_seed: int 
+    image_prompt: str 
 
 class StoryModel(BaseModel):
     title: str
@@ -124,52 +121,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": user["email"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- IMAGE GENERATION (POLLINATIONS ROBUST VERSION) ---
-def generate_image_pollinations(scene_action_prompt, character_desc):
-    # Truncate prompt: Keep it under 300 chars for safety
-    full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:300] 
-    encoded_prompt = requests.utils.quote(full_prompt)
-    
-    # 1. DISGUISE: Pretend to be a real browser to avoid "Bot" blocks
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-
-    print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
-
-    # 2. RETRY LOGIC: Try 3 times
-    for attempt in range(1, 4): 
-        try:
-            # STRATEGY: 
-            # Attempt 1 & 2: Use "flux" (Quality). 
-            # Attempt 3: Use "turbo" (Speed/Reliability).
-            model = "flux" if attempt < 3 else "turbo"
-            
-            random_seed = random.randint(1, 99999)
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model={model}"
-            
-            # 3. TIMEOUT: Flux needs time (35s), Turbo is fast. 
-            current_timeout = 35 if model == "flux" else 15
-            
-            response = requests.get(image_url, headers=headers, timeout=current_timeout)
-            
-            if response.status_code == 200:
-                base64_image = base64.b64encode(response.content).decode('utf-8')
-                return f"data:image/jpeg;base64,{base64_image}"
-            else:
-                print(f"      -> Attempt {attempt} ({model}) failed: {response.status_code}")
-                time.sleep(2)
-
-        except Exception as e:
-            print(f"      -> Attempt {attempt} error: {e}")
-            time.sleep(2)
-            
-    print("      -> GAVE UP. Switching to Backup Cartoon.")
-    # 4. EMERGENCY BACKUP: If everything fails, show a cute random cartoon
-    return "https://loremflickr.com/768/512/cartoon"
-
 # --- STORY GENERATION ---
-# CRITICAL: Use 'def' (not async def) to allow multiple users at once!
 @app.post("/generate")
 def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
     try:
@@ -199,15 +151,23 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         character_desc = story_data.get("main_character_visual", "a cute cartoon character")
         print(f"=== Main Character: {character_desc} ===")
 
+        # HYBRID APPROACH: Generate Seeds and Prompts, DO NOT CALL POLLINATIONS
         for chapter in story_data["chapters"]:
             action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
             
-            # Call our robust Pollinations function
-            img = generate_image_pollinations(action_prompt, character_desc)
-            chapter["image"] = img
+            # Combine character + action for the final prompt
+            full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {action_prompt}, white background"
             
-            # Small sleep to be polite
-            time.sleep(1)
+            # Generate a random seed
+            seed = random.randint(1, 99999)
+
+            # Assign these to the chapter object so frontend can use them
+            chapter["image_prompt"] = full_prompt
+            chapter["image_seed"] = seed
+            
+            # Remove the old 'image' field if it exists to avoid confusion
+            if "image" in chapter:
+                del chapter["image"]
 
         return story_data
 
@@ -232,7 +192,6 @@ async def get_my_stories(current_user: str = Depends(get_current_user)):
         story["_id"] = str(story["_id"])
     return stories
 
-# --- HEALTH CHECK ---
 @app.get("/")
 def read_root():
     return {"status": "alive", "message": "The backend is running!"}

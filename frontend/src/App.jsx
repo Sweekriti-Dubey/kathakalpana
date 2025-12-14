@@ -55,7 +55,7 @@ function Navbar({ isLoggedIn, onLogout }) {
       <div className="nav-links">
         <Link to="/">Home</Link>
         {isLoggedIn && <Link to="/generate">Create</Link>}
-        {isLoggedIn && <Link to="/library">My Library</Link>} {/* New Link */}
+        {isLoggedIn && <Link to="/library">My Library</Link>}
         <Link to="/testimonials">Testimonials</Link>
         
         {isLoggedIn ? (
@@ -72,7 +72,7 @@ function Navbar({ isLoggedIn, onLogout }) {
   );
 }
 
-// --- UPDATED STORY GENERATOR ---
+// --- UPDATED STORY GENERATOR (The Fix is Here) ---
 function StoryGenerator({ token }) {
   const [genreInput, setGenreInput] = useState('');
   const [generatedStory, setGeneratedStory] = useState(null);
@@ -91,12 +91,12 @@ function StoryGenerator({ token }) {
 
     try {
       const response = await axios.post("https://kathakalpana-api.onrender.com/generate", 
-    { genre: genreInput, chapters: parseInt(chapterCount) },
-    { 
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 120000 
-    } 
-);
+        { genre: genreInput, chapters: parseInt(chapterCount) },
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 120000 
+        } 
+      );
       setGeneratedStory(response.data);
     } catch (err) {
       console.error("Story generation failed:", err);
@@ -110,12 +110,13 @@ function StoryGenerator({ token }) {
     if (!generatedStory) return;
     setSaving(true);
     try {
+      // We save the story (which now contains seeds/prompts instead of full images)
       await axios.post("https://kathakalpana-api.onrender.com/save_story", 
         generatedStory, 
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("Story saved to your library! 📚");
-      navigate('/library'); // Go to library after saving
+      navigate('/library'); 
     } catch (error) {
       console.error("Save failed:", error);
       alert("Could not save story.");
@@ -137,6 +138,14 @@ function StoryGenerator({ token }) {
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
     }
+  };
+
+  // HELPER: Generate URL on the Frontend
+  const getImageUrl = (prompt, seed) => {
+    if (!prompt || !seed) return "https://loremflickr.com/768/512/cartoon"; // Fallback
+    const encodedPrompt = encodeURIComponent(prompt);
+    // Directly call Pollinations from the user's browser
+    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true&model=flux`;
   };
 
   return (
@@ -169,7 +178,6 @@ function StoryGenerator({ token }) {
                 {isSpeaking ? "Pause" : "Listen"}
               </button>
               
-          
               <button className="audio-btn" onClick={saveStoryToLibrary} disabled={saving} style={{background: '#28a745'}}>
                 <Save size={18} /> {saving ? "Saving..." : "Save to Library"}
               </button>
@@ -180,7 +188,13 @@ function StoryGenerator({ token }) {
             {generatedStory.chapters.map((chapter, index) => (
               <div key={index} className="story-chapter">
                 <div className="chapter-image-container">
-                  {chapter.image ? <img src={chapter.image} alt="chapter" className="chapter-image" /> : <div className="image-placeholder">Loading...</div>}
+                  {/* CHANGED: We now generate the URL here using the seed & prompt */}
+                  <img 
+                    src={getImageUrl(chapter.image_prompt, chapter.image_seed)} 
+                    alt="chapter" 
+                    className="chapter-image" 
+                    loading="lazy" 
+                  />
                 </div>
                 <div className="chapter-content">
                   <h4>{chapter.title}</h4>
@@ -198,7 +212,6 @@ function StoryGenerator({ token }) {
     </div>
   );
 }
-
 
 function HomePage() {
   return (
