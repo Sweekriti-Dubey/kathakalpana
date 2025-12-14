@@ -28,6 +28,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
 app = FastAPI()
 
+@app.get("/")
+def read_root():
+    return {"status": "alive", "message": "The backend is running!"}
+
 # --- MIDDLEWARE & SECURITY ---
 app.add_middleware(
     CORSMiddleware,
