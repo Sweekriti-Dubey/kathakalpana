@@ -21,16 +21,13 @@ from jose import JWTError, jwt
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MONGO_URL = os.getenv("MONGO_URL")
+# HF_TOKEN is NOT needed anymore
 
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey_change_this_in_production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
 app = FastAPI()
-
-@app.get("/")
-def read_root():
-    return {"status": "alive", "message": "The backend is running!"}
 
 # --- MIDDLEWARE & SECURITY ---
 app.add_middleware(
@@ -127,46 +124,52 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": user["email"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- STORY GENERATION CORE ---
-
+# --- IMAGE GENERATION (POLLINATIONS ROBUST VERSION) ---
 def generate_image_pollinations(scene_action_prompt, character_desc):
-    full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:400] 
+    # Truncate prompt: Keep it under 300 chars for safety
+    full_prompt = f"children's book illustration, cute vector style, soft colors, {character_desc}, {scene_action_prompt}, white background"[:300] 
     encoded_prompt = requests.utils.quote(full_prompt)
     
-    # Header disguise
+    # 1. DISGUISE: Pretend to be a real browser to avoid "Bot" blocks
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
     print(f"   -> Requesting Image: {scene_action_prompt[:30]}...")
 
-    # REDUCED ATTEMPTS: Only try 2 times to save time
-    for attempt in range(1, 3): 
+    # 2. RETRY LOGIC: Try 3 times
+    for attempt in range(1, 4): 
         try:
-            model = "turbo" 
+            # STRATEGY: 
+            # Attempt 1 & 2: Use "flux" (Quality). 
+            # Attempt 3: Use "turbo" (Speed/Reliability).
+            model = "flux" if attempt < 3 else "turbo"
+            
             random_seed = random.randint(1, 99999)
             image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=512&seed={random_seed}&nologo=true&model={model}"
             
-            # --- AGGRESSIVE TIMEOUT ---
-            # If it takes > 10 seconds, kill it. Turbo is usually 3s.
-            # 30s was causing your frontend to timeout.
-            response = requests.get(image_url, headers=headers, timeout=10)
+            # 3. TIMEOUT: Flux needs time (35s), Turbo is fast. 
+            current_timeout = 35 if model == "flux" else 15
+            
+            response = requests.get(image_url, headers=headers, timeout=current_timeout)
             
             if response.status_code == 200:
                 base64_image = base64.b64encode(response.content).decode('utf-8')
                 return f"data:image/jpeg;base64,{base64_image}"
             else:
-                print(f"      -> Attempt {attempt} failed: Status {response.status_code}")
-                time.sleep(1) # Short wait
+                print(f"      -> Attempt {attempt} ({model}) failed: {response.status_code}")
+                time.sleep(2)
 
         except Exception as e:
             print(f"      -> Attempt {attempt} error: {e}")
-            time.sleep(1)
+            time.sleep(2)
             
     print("      -> GAVE UP. Switching to Backup Cartoon.")
-    # FALLBACK: Random cute cartoon (Working URL) so the story never fails
+    # 4. EMERGENCY BACKUP: If everything fails, show a cute random cartoon
     return "https://loremflickr.com/768/512/cartoon"
 
+# --- STORY GENERATION ---
+# CRITICAL: Use 'def' (not async def) to allow multiple users at once!
 @app.post("/generate")
 def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
     try:
@@ -199,11 +202,12 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         for chapter in story_data["chapters"]:
             action_prompt = chapter.get('image_action_prompt', chapter.get('image_prompt', ''))
             
+            # Call our robust Pollinations function
             img = generate_image_pollinations(action_prompt, character_desc)
-            chapter["image"] = img if img else "https://placehold.co/512x512/png?text=Image+Unavailable"
+            chapter["image"] = img
             
-            print("      -> Waiting 5s for safety...")
-            time.sleep(5)
+            # Small sleep to be polite
+            time.sleep(1)
 
         return story_data
 
@@ -227,3 +231,8 @@ async def get_my_stories(current_user: str = Depends(get_current_user)):
     for story in stories:
         story["_id"] = str(story["_id"])
     return stories
+
+# --- HEALTH CHECK ---
+@app.get("/")
+def read_root():
+    return {"status": "alive", "message": "The backend is running!"}
