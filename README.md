@@ -6,17 +6,19 @@
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ## 🚀 Live Demo
-*(Optional: Add your Vercel/Render link here once deployed)*
-[Link to Live App](#)
+[https://kathakalpana-wjr2.vercel.app/](#)
 
 ## ✨ Features
 
-- **🎨 AI Illustration with Consistency:** Solves the common AI problem of "changing faces" by enforcing character consistency across all chapter illustrations.
-- **📝 Llama-3 Storytelling:** Generates creative, genre-specific stories with morals using Groq's high-speed inference.
-- **🔊 Text-to-Speech:** Integrated audio player that reads stories aloud for children.
-- **🔐 Secure Authentication:** Full Signup/Login system using JWT (JSON Web Tokens) and bcrypt encryption.
-- **📚 Personal Library:** Users can save their favorite stories to MongoDB and read them later.
-- **📱 Responsive Design:** Built with React and tailored for both desktop and tablet reading experiences.
+1.📖 AI Story Generation: Creates unique, multi-chapter stories based on any genre (Adventure, Sci-Fi, Fairy Tale, etc.).
+
+2.🎨 Dynamic Illustrations: Automatically generates a consistent main character and creates unique illustrations for every chapter using Pollinations.ai.
+
+3.🔊 Audio Narration: Text-to-speech feature reads the story aloud for children.
+
+4.📚 Personal Library: Users can save their favorite stories to their personal dashboard (MongoDB).
+
+5.🔐 Secure Authentication: Full Signup/Login system with JWT Authentication.
 
 ## 🛠️ Tech Stack
 
