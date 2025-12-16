@@ -228,36 +228,37 @@ function StoryGenerator({ token }) {
                     <div className="story-header">
                         <h3>{generatedStory.title}</h3>
                         <div style={{display:'flex', gap:'10px'}}>
-                        <button className={`audio-btn ${isSpeaking ? 'playing' : ''}`} onClick={toggleAudio}>
-                            {isSpeaking ? <Users /> : <Volume2 />} 
-                            {isSpeaking ? "Pause" : "Listen"}
-                        </button>
-                        
-                        <button className="audio-btn" onClick={saveStoryToLibrary} disabled={saving} style={{background: '#28a745'}}>
-                            <Save size={18} /> {saving ? "Saving..." : "Save to Library"}
-                        </button>
-                    </div>
-                </div>
-                
-                <div className="story-chapters">
-                    {generatedStory.chapters.map((chapter, index) => (
-                        <div key={index} className="story-chapter">
-                            <p style={{color: 'yellow'}}>--- Chapter {index + 1} Container Start ---</p>
-
-                            <div className="chapter-image-container">
-                                <ChapterImageLoader 
-                                    image_prompt={chapter.image_prompt} 
-                                    image_seed={chapter.image_seed}
-                                />
-                            </div>
-
-                            <div className="chapter-content">
-                                <h4>{chapter.title}</h4>
-                                <p>{chapter.content}</p>
-                            </div>
+                            <button className={`audio-btn ${isSpeaking ? 'playing' : ''}`} onClick={toggleAudio}>
+                                {isSpeaking ? <Users /> : <Volume2 />} 
+                                {isSpeaking ? "Pause" : "Listen"}
+                            </button>
+                            
+                            <button className="audio-btn" onClick={saveStoryToLibrary} disabled={saving} style={{background: '#28a745'}}>
+                                <Save size={18} /> {saving ? "Saving..." : "Save to Library"}
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                    
+                    <div className="story-chapters">
+                        {generatedStory.chapters.map((chapter, index) => (
+                            <div key={index} className="story-chapter">
+                                <p style={{color: 'yellow'}}>--- Chapter {index + 1} Container Start ---</p>
+
+                                <div className="chapter-image-container">
+                                    <ChapterImageLoader 
+                                        image_prompt={chapter.image_prompt} 
+                                        image_seed={chapter.image_seed}
+                                    />
+                                </div>
+
+                                <div className="chapter-content">
+                                    <h4>{chapter.title}</h4>
+                                    <p>{chapter.content}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
                     <div className="story-moral">
                         <h4>🌟 Moral of the Story 🌟</h4>
                         <p>{generatedStory.moral}</p>
