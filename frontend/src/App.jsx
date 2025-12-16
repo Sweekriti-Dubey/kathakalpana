@@ -74,10 +74,10 @@ function Navbar({ isLoggedIn, onLogout }) {
 
 // New Component to handle individual image loading state (Handles errors and loading UI)
 const ChapterImageLoader = ({ image_prompt, image_seed }) => {
-    alert("Loader is running! Prompt: " + image_prompt);
+    console.log("🚀 ChapterImageLoader CALLED!");
+    console.log("📥 Received props - Prompt:", image_prompt, "Seed:", image_seed);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
-    console.log("DEBUG: Loader received prompt:", image_prompt, "and seed:", image_seed);
 
     // Helper function to build the image URL
     const getImageUrl = (prompt, seed) => {
@@ -88,49 +88,80 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     };
 
     const imageUrl = getImageUrl(image_prompt, image_seed);
+    
+    console.log("🖼️ Image URL generated:", imageUrl);
+    console.log("🔄 Image state - Loaded:", imageLoaded, "Error:", imageError);
 
-    // Show a loading UI or error state
-    if (imageError) {
-        return (
-            <div className="image-error-placeholder" style={{ 
-                width: '100%', height: '300px', backgroundColor: '#f8d7da', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                borderRadius: '10px', color: '#721c24' 
-            }}>
-                Failed to Load Image 🖼️
-            </div>
-        );
-    }
-
-    if (!imageLoaded) {
-        return (
-            <div className="image-loading-placeholder" style={{ 
-                width: '100%', height: '300px', backgroundColor: '#e9ecef', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                borderRadius: '10px', color: '#6c757d' 
-            }}>
-                Generating Image... ⏳
-            </div>
-        );
-    }
-
-    // Once loaded, show the actual image
+    // Render both the loading state AND the image (hidden until loaded)
     return (
-        <img 
-            src={imageUrl}
-            alt="chapter illustration"
-            className="chapter-image"
-            style={{ 
-                width: '100%', 
-                height: '300px', 
-                objectFit: 'cover', 
-                borderRadius: '10px' 
-            }}
-            // These handlers update the state
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)} 
-            loading="lazy"
-        />
+        <div style={{ position: 'relative', width: '100%', height: '300px' }}>
+            {/* Show loading placeholder while image loads */}
+            {!imageLoaded && !imageError && (
+                <div className="image-loading-placeholder" style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%', 
+                    height: '100%', 
+                    backgroundColor: '#e9ecef', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderRadius: '10px', 
+                    color: '#6c757d',
+                    zIndex: 2
+                }}>
+                    Generating Image... ⏳
+                </div>
+            )}
+            
+            {/* Show error state if image fails */}
+            {imageError && (
+                <div className="image-error-placeholder" style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%', 
+                    height: '100%', 
+                    backgroundColor: '#f8d7da', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderRadius: '10px', 
+                    color: '#721c24',
+                    zIndex: 2
+                }}>
+                    Failed to Load Image 🖼️
+                </div>
+            )}
+            
+            {/* Always render the image (it will trigger onLoad/onError) */}
+            <img 
+                src={imageUrl}
+                alt="chapter illustration"
+                className="chapter-image"
+                style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover', 
+                    borderRadius: '10px',
+                    opacity: imageLoaded ? 1 : 0,
+                    transition: 'opacity 0.3s ease-in-out',
+                    zIndex: 1
+                }}
+                onLoad={() => {
+                    console.log("✅ Image loaded successfully!");
+                    setImageLoaded(true);
+                }}
+                onError={() => {
+                    console.log("❌ Image failed to load!");
+                    setImageError(true);
+                }} 
+            />
+        </div>
     );
 };
 
@@ -159,7 +190,11 @@ function StoryGenerator({ token }) {
                     timeout: 120000 
                 } 
             );
-            console.log("CHECKING CHAPTER KEYS:", response.data.chapters[0]);
+            console.log("📚 FULL RESPONSE DATA:", response.data);
+            console.log("📖 FIRST CHAPTER:", response.data.chapters[0]);
+            console.log("🖼️ CHAPTER KEYS:", Object.keys(response.data.chapters[0]));
+            console.log("✅ Has image_prompt?", response.data.chapters[0].image_prompt);
+            console.log("✅ Has image_seed?", response.data.chapters[0].image_seed);
             setGeneratedStory(response.data);
         } catch (err) {
             console.error("Story generation failed:", err);
@@ -240,7 +275,10 @@ function StoryGenerator({ token }) {
                     </div>
                     
                     <div className="story-chapters">
-                        {generatedStory.chapters.map((chapter, index) => (
+                        {generatedStory.chapters.map((chapter, index) => {
+                            console.log(`🎯 Rendering Chapter ${index + 1}:`, chapter);
+                            console.log(`🖼️ Image data - Prompt: ${chapter.image_prompt}, Seed: ${chapter.image_seed}`);
+                            return (
                             <div key={index} className="story-chapter">
                                 <p style={{color: 'yellow'}}>--- Chapter {index + 1} Container Start ---</p>
 
@@ -256,7 +294,8 @@ function StoryGenerator({ token }) {
                                     <p>{chapter.content}</p>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     
                     <div className="story-moral">
