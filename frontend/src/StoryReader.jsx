@@ -16,6 +16,14 @@ function StoryReader() {
 
   if (!story) return null;
 
+  // Helper function to build the image URL - aligned with App.jsx
+  const getImageUrl = (prompt, seed) => {
+    if (!prompt || !seed) return "https://loremflickr.com/768/512/cartoon";
+    const encodedPrompt = encodeURIComponent(prompt);
+    // 🟢 ALIGNED: Added &style=cute_vector_style just like in App.jsx
+    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true&model=flux&style=cute_vector_style`;
+  };
+
   const toggleAudio = () => {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
@@ -50,13 +58,7 @@ function StoryReader() {
 
       <div className="story-chapters">
         {story.chapters.map((chapter, index) => {
-          // Build the image URL from prompt and seed
-          const getImageUrl = (prompt, seed) => {
-            if (!prompt || !seed) return "https://loremflickr.com/768/512/cartoon";
-            const encodedPrompt = encodeURIComponent(prompt);
-            return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true&model=flux`;
-          };
-          
+          // 🟢 Using the helper function defined above
           const imageUrl = getImageUrl(chapter.image_prompt, chapter.image_seed);
           
           return (
@@ -66,8 +68,16 @@ function StoryReader() {
               <div className="chapter-image-container" style={{ marginBottom: '25px' }}>
                 <img 
                   src={imageUrl} 
-                  alt="chapter" 
-                  style={{ width: '100%', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }} 
+                  alt="chapter illustration" 
+                  style={{ 
+                    width: '100%', 
+                    height: 'auto', 
+                    maxHeight: '400px', 
+                    objectFit: 'cover', 
+                    borderRadius: '10px', 
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)' 
+                  }} 
+                  loading="lazy"
                 />
               </div>
               
