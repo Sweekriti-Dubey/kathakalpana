@@ -60,7 +60,7 @@ function Navbar({ isLoggedIn, onLogout }) {
                 
                 {isLoggedIn ? (
                     <button onClick={onLogout} className="nav-btn" style={{background:'none', border:'none', color:'white', cursor:'pointer', marginLeft: '20px'}}>
-                         Log Out <LogOut size={16} style={{marginBottom: '-3px'}}/>
+                        Log Out <LogOut size={16} style={{marginBottom: '-3px'}}/>
                     </button>
                 ) : (
                     <Link to="/login" className="nav-cta" style={{background: '#4facfe', padding: '8px 15px', borderRadius: '20px', marginLeft: '15px'}}>
@@ -159,7 +159,7 @@ function StoryGenerator({ token }) {
                     timeout: 120000 
                 } 
             );
-            console.log("RAW BACKEND DATA:", response.data);
+            console.log("CHECKING CHAPTER KEYS:", response.data.chapters[0]);
             setGeneratedStory(response.data);
         } catch (err) {
             console.error("Story generation failed:", err);
@@ -228,35 +228,36 @@ function StoryGenerator({ token }) {
                     <div className="story-header">
                         <h3>{generatedStory.title}</h3>
                         <div style={{display:'flex', gap:'10px'}}>
-                            <button className={`audio-btn ${isSpeaking ? 'playing' : ''}`} onClick={toggleAudio}>
-                                {isSpeaking ? <Users /> : <Volume2 />} 
-                                {isSpeaking ? "Pause" : "Listen"}
-                            </button>
-                            
-                            <button className="audio-btn" onClick={saveStoryToLibrary} disabled={saving} style={{background: '#28a745'}}>
-                                <Save size={18} /> {saving ? "Saving..." : "Save to Library"}
-                            </button>
-                        </div>
+                        <button className={`audio-btn ${isSpeaking ? 'playing' : ''}`} onClick={toggleAudio}>
+                            {isSpeaking ? <Users /> : <Volume2 />} 
+                            {isSpeaking ? "Pause" : "Listen"}
+                        </button>
+                        
+                        <button className="audio-btn" onClick={saveStoryToLibrary} disabled={saving} style={{background: '#28a745'}}>
+                            <Save size={18} /> {saving ? "Saving..." : "Save to Library"}
+                        </button>
                     </div>
-                    
-                    <div className="story-chapters">
-                        {generatedStory.chapters.map((chapter, index) => (
-                            <div key={index} className="story-chapter">
-                                {/* 🟢 CORRECT IMPLEMENTATION: Use the dedicated loader component */}
-                                <div className="chapter-image-container">
-                                    <ChapterImageLoader 
-                                        image_prompt={chapter.image_prompt} 
-                                        image_seed={chapter.image_seed} 
-                                    />
-                                </div>
+                </div>
+                
+                <div className="story-chapters">
+                    {generatedStory.chapters.map((chapter, index) => (
+                        <div key={index} className="story-chapter">
+                            <p style={{color: 'yellow'}}>--- Chapter {index + 1} Container Start ---</p>
 
-                                <div className="chapter-content">
-                                    <h4>{chapter.title}</h4>
-                                    <p>{chapter.content}</p>
-                                </div>
+                            <div className="chapter-image-container">
+                                <ChapterImageLoader 
+                                    image_prompt={chapter.image_prompt} 
+                                    image_seed={chapter.image_seed}
+                                />
                             </div>
-                        ))}
-                    </div>
+
+                            <div className="chapter-content">
+                                <h4>{chapter.title}</h4>
+                                <p>{chapter.content}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
                     <div className="story-moral">
                         <h4>🌟 Moral of the Story 🌟</h4>
                         <p>{generatedStory.moral}</p>
