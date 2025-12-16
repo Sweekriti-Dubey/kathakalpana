@@ -74,6 +74,7 @@ function Navbar({ isLoggedIn, onLogout }) {
 
 // New Component to handle individual image loading state (Handles errors and loading UI)
 const ChapterImageLoader = ({ image_prompt, image_seed }) => {
+    alert("Loader is running! Prompt: " + image_prompt);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
     console.log("DEBUG: Loader received prompt:", image_prompt, "and seed:", image_seed);
@@ -158,6 +159,7 @@ function StoryGenerator({ token }) {
                     timeout: 120000 
                 } 
             );
+            console.log("RAW BACKEND DATA:", response.data);
             setGeneratedStory(response.data);
         } catch (err) {
             console.error("Story generation failed:", err);
