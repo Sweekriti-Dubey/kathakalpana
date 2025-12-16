@@ -76,6 +76,7 @@ function Navbar({ isLoggedIn, onLogout }) {
 const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
+    console.log("DEBUG: Loader received prompt:", image_prompt, "and seed:", image_seed);
 
     // Helper function to build the image URL
     const getImageUrl = (prompt, seed) => {
