@@ -120,23 +120,27 @@ function StoryGenerator({ token }) {
 
     const fetchStory = async () => {
         if (!genreInput.trim()) return alert("Please enter a genre!");
+        console.log("🚀 Starting story generation for genre:", genreInput);
         setLoading(true);
         setGeneratedStory(null);
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
 
         try {
+            console.log("📡 Sending request to backend...");
             const response = await axios.post("https://kathakalpana-api.onrender.com/generate", 
                 { genre: genreInput, chapters: parseInt(chapterCount) },
                 { headers: { Authorization: `Bearer ${token}` }, timeout: 120000 } 
             );
-            console.log("Story data received:", response.data);
+            console.log("✅ Story data received:", response.data);
             setGeneratedStory(response.data);
         } catch (err) {
-            console.error("Story generation failed:", err);
+            console.error("❌ Story generation failed:", err);
+            console.error("Error details:", err.response?.data || err.message);
             alert("Failed to generate story. Please try again.");
         } finally {
             setLoading(false);
+            console.log("🏁 Story generation process completed");
         }
     };
 
