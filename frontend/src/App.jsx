@@ -32,12 +32,9 @@ function App() {
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                    
-                    {/* Protected Routes */}
                     <Route path="/generate" element={<ProtectedRoute><StoryGenerator token={token} /></ProtectedRoute>} />
                     <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
                     <Route path="/read" element={<ProtectedRoute><StoryReader /></ProtectedRoute>} />
-
                     <Route path="/testimonials" element={<Testimonials />} />
                     <Route path="/about" element={<AboutUs />} />
                 </Routes>
@@ -57,10 +54,9 @@ function Navbar({ isLoggedIn, onLogout }) {
                 {isLoggedIn && <Link to="/generate">Create</Link>}
                 {isLoggedIn && <Link to="/library">My Library</Link>}
                 <Link to="/testimonials">Testimonials</Link>
-                
                 {isLoggedIn ? (
                     <button onClick={onLogout} className="nav-btn" style={{background:'none', border:'none', color:'white', cursor:'pointer', marginLeft: '20px'}}>
-                        Log Out <LogOut size={16} style={{marginBottom: '-3px'}}/>
+                         Log Out <LogOut size={16} style={{marginBottom: '-3px'}}/>
                     </button>
                 ) : (
                     <Link to="/login" className="nav-cta" style={{background: '#4facfe', padding: '8px 15px', borderRadius: '20px', marginLeft: '15px'}}>
@@ -72,7 +68,47 @@ function Navbar({ isLoggedIn, onLogout }) {
     );
 }
 
-// --- UPDATED STORY GENERATOR ---
+// 🟢 NEW IMAGE LOADER COMPONENT
+const ChapterImageLoader = ({ image_prompt, image_seed }) => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+
+    const getImageUrl = (prompt, seed) => {
+        if (!prompt) return "https://loremflickr.com/768/512/cartoon";
+        const encodedPrompt = encodeURIComponent(prompt);
+        // Using Flux model with a consistent cute vector style
+        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&style=cute_vector_style`;
+    };
+
+    const imageUrl = getImageUrl(image_prompt, image_seed);
+
+    return (
+        <div className="chapter-image-container" style={{ 
+            width: '100%', minHeight: '300px', backgroundColor: '#2a2a2a', 
+            borderRadius: '10px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
+        }}>
+            {!imageLoaded && !imageError && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe' }}>
+                    Generating Magic... ⏳
+                </div>
+            )}
+            {imageError && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b' }}>
+                    Failed to load image 🖼️
+                </div>
+            )}
+            <img 
+                src={imageUrl}
+                alt="Illustration"
+                style={{ width: '100%', display: imageLoaded ? 'block' : 'none' }}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+                loading="lazy"
+            />
+        </div>
+    );
+};
+
 function StoryGenerator({ token }) {
     const [genreInput, setGenreInput] = useState('');
     const [generatedStory, setGeneratedStory] = useState(null);
@@ -92,11 +128,9 @@ function StoryGenerator({ token }) {
         try {
             const response = await axios.post("https://kathakalpana-api.onrender.com/generate", 
                 { genre: genreInput, chapters: parseInt(chapterCount) },
-                { 
-                    headers: { Authorization: `Bearer ${token}` },
-                    timeout: 120000 
-                } 
+                { headers: { Authorization: `Bearer ${token}` }, timeout: 120000 } 
             );
+            console.log("Story data received:", response.data);
             setGeneratedStory(response.data);
         } catch (err) {
             console.error("Story generation failed:", err);
@@ -110,7 +144,6 @@ function StoryGenerator({ token }) {
         if (!generatedStory) return;
         setSaving(true);
         try {
-            // The backend now expects the generatedStory object which contains the prompt/seed
             await axios.post("https://kathakalpana-api.onrender.com/save_story", 
                 generatedStory, 
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -169,7 +202,6 @@ function StoryGenerator({ token }) {
                                 {isSpeaking ? <Users /> : <Volume2 />} 
                                 {isSpeaking ? "Pause" : "Listen"}
                             </button>
-                            
                             <button className="audio-btn" onClick={saveStoryToLibrary} disabled={saving} style={{background: '#28a745'}}>
                                 <Save size={18} /> {saving ? "Saving..." : "Save to Library"}
                             </button>
@@ -179,6 +211,11 @@ function StoryGenerator({ token }) {
                     <div className="story-chapters">
                         {generatedStory.chapters.map((chapter, index) => (
                             <div key={index} className="story-chapter">
+                                {/* 🟢 ChapterImageLoader is now correctly nested */}
+                                <ChapterImageLoader 
+                                    image_prompt={chapter.image_prompt} 
+                                    image_seed={chapter.image_seed} 
+                                />
                                 <div className="chapter-content">
                                     <h4>{chapter.title}</h4>
                                     <p>{chapter.content}</p>
