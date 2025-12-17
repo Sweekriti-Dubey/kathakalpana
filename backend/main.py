@@ -78,8 +78,6 @@ class StoryRequest(BaseModel):
 class ChapterModel(BaseModel):
     title: str
     content: str
-    image_seed: int 
-    image_prompt: str 
 
 class StoryModel(BaseModel):
     title: str
@@ -128,15 +126,13 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         client = Groq(api_key=GROQ_API_KEY)
         
         system_prompt = (
-            "You are a children's author and Art Director. Output valid JSON. "
-            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"main_character_visual\": \"...\", \"chapters\": [ { \"title\": \"...\", \"content\": \"...\", \"image_action_prompt\": \"...\" } ] }"
+            "You are a children's author. Output valid JSON. "
+            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"chapters\": [ { \"title\": \"...\", \"content\": \"...\" } ] }"
         )
         
         user_prompt = (
             f"Write a {request.genre} story with {request.chapters} chapters. "
-            "1. First, invent a specific, cute visual description for the MAIN CHARACTER based on the genre. Save this in 'main_character_visual'. "
-            "2. 'content': The story text (~100 words). "
-            "3. 'image_action_prompt': Describe ONLY the action and background. Do NOT describe the character again."
+            "Each chapter should have a title and content (~100 words)."
         )
 
         chat_completion = client.chat.completions.create(
@@ -152,32 +148,9 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
             print(f"JSON DECODE ERROR: Groq output was malformed. {e}")
             raise HTTPException(status_code=500, detail="AI output failed to format correctly.")
 
-
-        character_desc = story_data.get("main_character_visual", "a cute cartoon character")
-        print(f"=== Main Character: {character_desc} ===")
-
         if "chapters" not in story_data or not story_data["chapters"]:
             print("ERROR: Groq output did not contain a 'chapters' array.")
             raise HTTPException(status_code=500, detail="AI failed to generate story chapters.")
-
-        for chapter in story_data["chapters"]:
-            
-            action_prompt = chapter.get('image_action_prompt')
-            
-            if not action_prompt:
-                action_prompt = "A simple illustration matching the chapter's content."
-                print("WARNING: image_action_prompt was missing. Using generic fallback.")
-            
-           
-            short_prompt = f"{character_desc}, {action_prompt}"
-            
-            seed = random.randint(1, 99999)
-
-            chapter["image_prompt"] = short_prompt
-            chapter["image_seed"] = seed
-            
-            if "image" in chapter:
-                del chapter["image"]
 
         return story_data
 

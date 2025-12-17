@@ -16,14 +16,6 @@ function StoryReader() {
 
   if (!story) return null;
 
-  // Helper function to build the image URL - aligned with App.jsx
-  const getImageUrl = (prompt, seed) => {
-    if (!prompt || !seed) return "https://loremflickr.com/768/512/cartoon";
-    const encodedPrompt = encodeURIComponent(prompt);
-    // 🟢 ALIGNED: Added &style=cute_vector_style just like in App.jsx
-    return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed}&nologo=true&model=flux&style=cute_vector_style`;
-  };
-
   const toggleAudio = () => {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
@@ -57,34 +49,13 @@ function StoryReader() {
       </div>
 
       <div className="story-chapters">
-        {story.chapters.map((chapter, index) => {
-          // 🟢 Using the helper function defined above
-          const imageUrl = getImageUrl(chapter.image_prompt, chapter.image_seed);
-          
-          return (
-            <div key={index} className="story-chapter" style={{ marginBottom: '60px', background: '#2a2a2a', padding: '30px', borderRadius: '15px' }}>
-              <h2 style={{ color: '#4facfe', marginBottom: '20px' }}>Chapter {index + 1}: {chapter.title}</h2>
-              
-              <div className="chapter-image-container" style={{ marginBottom: '25px' }}>
-                <img 
-                  src={imageUrl} 
-                  alt="chapter illustration" 
-                  style={{ 
-                    width: '100%', 
-                    height: 'auto', 
-                    maxHeight: '400px', 
-                    objectFit: 'cover', 
-                    borderRadius: '10px', 
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)' 
-                  }} 
-                  loading="lazy"
-                />
-              </div>
-              
-              <p style={{ fontSize: '1.2rem', lineHeight: '1.8', color: '#e0e0e0' }}>{chapter.content}</p>
-            </div>
-          );
-        })}
+        {story.chapters.map((chapter, index) => (
+          <div key={index} className="story-chapter" style={{ marginBottom: '60px', background: '#2a2a2a', padding: '30px', borderRadius: '15px' }}>
+            <h2 style={{ color: '#4facfe', marginBottom: '20px' }}>Chapter {index + 1}: {chapter.title}</h2>
+            
+            <p style={{ fontSize: '1.2rem', lineHeight: '1.8', color: '#e0e0e0' }}>{chapter.content}</p>
+          </div>
+        ))}
       </div>
 
       <div className="story-moral" style={{ background: '#4facfe20', padding: '20px', borderRadius: '10px', textAlign: 'center', marginTop: '40px' }}>

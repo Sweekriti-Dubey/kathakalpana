@@ -60,14 +60,6 @@ function Library() {
               <h3 style={{marginTop: 0}}>{story.title}</h3>
               <p style={{fontSize: '0.9em', color: '#aaa'}}><Calendar size={14} /> {new Date(story.created_at).toLocaleDateString()}</p>
               
-              {story.chapters[0]?.image && (
-                <img 
-                  src={story.chapters[0].image} 
-                  alt="cover" 
-                  style={{width: '100%', height: '150px', objectFit: 'cover', borderRadius: '10px', marginTop: '10px'}} 
-                />
-              )}
-              
               <div style={{marginTop: '15px'}}>
                 <span style={{background: '#4facfe', color: 'white', padding: '5px 10px', borderRadius: '10px', fontSize: '0.8em'}}>
                   {story.chapters.length} Chapters
