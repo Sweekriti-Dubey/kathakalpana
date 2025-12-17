@@ -78,6 +78,8 @@ class StoryRequest(BaseModel):
 class ChapterModel(BaseModel):
     title: str
     content: str
+    image_prompt: str
+    image_seed: int
 
 class StoryModel(BaseModel):
     title: str
@@ -125,9 +127,13 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         print(f"=== Generating Story: {request.genre} ===")
         client = Groq(api_key=GROQ_API_KEY)
         
+        # 🟢 UPDATED SYSTEM PROMPT: Now includes image instructions
         system_prompt = (
-            "You are a children's author. Output valid JSON. "
-            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"chapters\": [ { \"title\": \"...\", \"content\": \"...\" } ] }"
+            "You are a children's author. Output valid JSON only. "
+            "For each chapter, create a short 'image_prompt' (max 15 words) describing a scene from that chapter. "
+            "The style should be consistent. "
+            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"chapters\": [ "
+            "{ \"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"...\" } ] }"
         )
         
         user_prompt = (
@@ -142,20 +148,14 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
             response_format={"type": "json_object"}
         )
 
-        try:
-            story_data = json.loads(chat_completion.choices[0].message.content)
-        except json.JSONDecodeError as e:
-            print(f"JSON DECODE ERROR: Groq output was malformed. {e}")
-            raise HTTPException(status_code=500, detail="AI output failed to format correctly.")
+        story_data = json.loads(chat_completion.choices[0].message.content)
 
-        if "chapters" not in story_data or not story_data["chapters"]:
-            print("ERROR: Groq output did not contain a 'chapters' array.")
-            raise HTTPException(status_code=500, detail="AI failed to generate story chapters.")
+        if "chapters" in story_data:
+            for chapter in story_data["chapters"]:
+                chapter["image_seed"] = random.randint(1000, 99999)
 
         return story_data
 
-    except HTTPException:
-        raise
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
