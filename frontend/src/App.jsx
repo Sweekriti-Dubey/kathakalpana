@@ -75,7 +75,6 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
         const encodedPrompt = encodeURIComponent(prompt);
-        // Using 'turbo' model for faster results
         return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=turbo&style=cute_vector_style`;
     };
 
