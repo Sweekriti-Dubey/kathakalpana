@@ -72,49 +72,51 @@ function Navbar({ isLoggedIn, onLogout }) {
 const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
         
-        // 🟢 FIX 1: Bake style into prompt, remove special characters
-        const fullPrompt = `${prompt}, cute digital art style for children's book, high resolution`;
-        const encodedPrompt = encodeURIComponent(fullPrompt);
+        // 🟢 FIX: Keep the prompt extremely short and simple to prevent timeouts.
+        // We take only the first 10 words and add a simple style.
+        const shortPrompt = prompt.split(' ').slice(0, 10).join(' ');
+        const styledPrompt = `${shortPrompt}, simple children book illustration`;
+        const encodedPrompt = encodeURIComponent(styledPrompt);
         
-        // 🟢 FIX 2: Use flux-schnell and REMOVE unsupported &style= parameter
-        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux-schnell`;
+        // 🟢 Using 'turbo' instead of 'flux-schnell' for this specific error 
+        // sometimes helps because turbo is even lighter.
+        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=turbo`;
     };
 
     const imageUrl = getImageUrl(image_prompt, image_seed);
     
     return ( 
         <div className="chapter-image-container" style={{ 
-            width: '100%', minHeight: '350px', backgroundColor: '#1a1a1a', 
-            borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '25px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+            width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', 
+            borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
         }}>
             {!imageLoaded && !imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2, background: '#222' }}>
-                    <div className="spinner" style={{ marginBottom: '10px' }}>⏳</div>
-                    <span>Painting with AI...</span>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 }}>
+                    {retryCount > 0 ? `Retrying (Try ${retryCount})... ⏳` : "Painting with AI... 🎨"}
                 </div>
             )}
 
             {imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b', background: '#222' }}>
-                    Failed to load illustration 🖼️
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b' }}>
+                    <span>Generation timed out.</span>
+                    <button 
+                        onClick={() => { setImageError(false); setRetryCount(c => c + 1); }}
+                        style={{ marginTop: '10px', padding: '5px 15px', borderRadius: '15px', cursor: 'pointer' }}
+                    >
+                        Try Again 🔄
+                    </button>
                 </div>
             )}
 
             <img 
-                src={imageUrl}
+                src={imageUrl + (retryCount > 0 ? `&retry=${retryCount}` : '')}
                 alt="Illustration"
-                style={{ 
-                    width: '100%', 
-                    height: 'auto',
-                    display: 'block',
-                    opacity: imageLoaded ? 1 : 0,
-                    transition: 'opacity 0.8s ease-in-out'
-                }}
+                style={{ width: '100%', display: 'block', opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.5s' }}
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
             />
