@@ -74,44 +74,71 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const [imageError, setImageError] = useState(false);
     const [retries, setRetries] = useState(0);
 
+    // 🟢 NEW: Manual Timeout Logic
+    useEffect(() => {
+        if (!imageLoaded && !imageError) {
+            const timer = setTimeout(() => {
+                console.log("⏰ Image generation taking too long, showing Try Again button");
+                setImageError(true); 
+            }, 30000); // 30 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [imageLoaded, imageError, retries]);
+
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
-        
-        // Clean prompt to be simple and direct for the AI
-        const cleanPrompt = prompt.split(',')[0].substring(0, 100);
-        const styledPrompt = `${cleanPrompt}, children's book illustration, vibrant colors`;
-        
-        // 🟢 Switch back to 'flux' for better stability over 'turbo'
+        // Simplify prompt for faster generation
+        const cleanPrompt = prompt.split(',')[0].substring(0, 60);
+        const styledPrompt = `${cleanPrompt}, simple flat vector illustration`;
         return `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&retry=${retries}`;
     };
 
-    const imageUrl = getImageUrl(image_prompt, image_seed);
-
     return (
-        <div style={{ width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', borderRadius: '15px', overflow: 'hidden', position: 'relative' }}>
+        <div className="chapter-image-container" style={{ 
+            width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', 
+            borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
+        }}>
+            {/* 1. Loading State */}
             {!imageLoaded && !imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe' }}>
-                    Painting with AI... {retries > 0 ? `(Attempt ${retries + 1})` : ''} 🎨
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 }}>
+                    Painting your story... 🎨
                 </div>
             )}
 
+            {/* 2. Error State (NOW RE-DESIGNED TO BE VISIBLE) */}
             {imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b' }}>
-                    <span>Generation Timed Out</span>
+                <div style={{ 
+                    position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', 
+                    alignItems: 'center', justifyContent: 'center', color: '#ff4b2b', 
+                    background: 'rgba(0,0,0,0.8)', zIndex: 3 
+                }}>
+                    <span style={{ marginBottom: '10px' }}>Generation is slow right now 🐢</span>
                     <button 
-                        onClick={() => { setImageError(false); setRetries(r => r + 1); }}
-                        style={{ marginTop: '10px', padding: '5px 15px', cursor: 'pointer', borderRadius: '20px' }}
+                        onClick={() => { 
+                            setImageError(false); 
+                            setImageLoaded(false);
+                            setRetries(r => r + 1); 
+                        }}
+                        style={{ 
+                            padding: '8px 20px', backgroundColor: '#4facfe', color: 'white', 
+                            border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' 
+                        }}
                     >
-                        Try Again 🔄
+                        Retry Generation 🔄
                     </button>
                 </div>
             )}
 
+            {/* 3. The Image */}
             <img 
-                src={imageUrl}
-                alt="Story Illustration"
+                src={getImageUrl(image_prompt, image_seed)}
+                alt="Illustration"
                 style={{ width: '100%', display: 'block', opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.5s' }}
-                onLoad={() => setImageLoaded(true)}
+                onLoad={() => {
+                    console.log("🎨 Success!");
+                    setImageLoaded(true);
+                    setImageError(false);
+                }}
                 onError={() => setImageError(true)}
             />
         </div>
