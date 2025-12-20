@@ -75,7 +75,8 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
         const encodedPrompt = encodeURIComponent(prompt);
-        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&style=cute_vector_style`;
+        // Using 'turbo' model for faster results
+        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=turbo&style=cute_vector_style`;
     };
 
     const imageUrl = getImageUrl(image_prompt, image_seed);
@@ -85,31 +86,32 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
             width: '100%', minHeight: '300px', backgroundColor: '#2a2a2a', 
             borderRadius: '10px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
         }}>
-            {/* The Loader shows ONLY while imageLoaded is false */}
+            {/* 1. The Loading Overlay (Visible only while loading) */}
             {!imageLoaded && !imageError && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 }}>
                     Generating Magic... ⏳
                 </div>
             )}
 
+            {/* 2. The Error Overlay */}
             {imageError && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b' }}>
                     Failed to load image 🖼️
                 </div>
             )}
 
-            {/* The Image is ALWAYS in the code, but invisible until loaded */}
+            {/* 3. The Actual Image (Always present, but invisible until loaded) */}
             <img 
                 src={imageUrl}
                 alt="Illustration"
                 style={{ 
                     width: '100%', 
                     display: 'block',
-                    opacity: imageLoaded ? 1 : 0, // 🟢 Key Fix: Use opacity instead of removing from DOM
+                    opacity: imageLoaded ? 1 : 0, // 🟢 This allows the browser to download it in the background
                     transition: 'opacity 0.5s ease-in-out'
                 }}
                 onLoad={() => {
-                    console.log("🎨 Image successfully loaded for:", image_prompt);
+                    console.log("🎨 Image loaded successfully!");
                     setImageLoaded(true);
                 }}
                 onError={() => setImageError(true)}
