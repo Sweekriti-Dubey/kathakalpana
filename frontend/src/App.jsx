@@ -72,41 +72,35 @@ function Navbar({ isLoggedIn, onLogout }) {
 const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
-    const [retryCount, setRetryCount] = useState(0);
+    const [retries, setRetries] = useState(0);
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
         
-        // 🟢 FIX: Keep the prompt extremely short and simple to prevent timeouts.
-        // We take only the first 10 words and add a simple style.
-        const shortPrompt = prompt.split(' ').slice(0, 10).join(' ');
-        const styledPrompt = `${shortPrompt}, simple children book illustration`;
-        const encodedPrompt = encodeURIComponent(styledPrompt);
+        // Clean prompt to be simple and direct for the AI
+        const cleanPrompt = prompt.split(',')[0].substring(0, 100);
+        const styledPrompt = `${cleanPrompt}, children's book illustration, vibrant colors`;
         
-        // 🟢 Using 'turbo' instead of 'flux-schnell' for this specific error 
-        // sometimes helps because turbo is even lighter.
-        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=turbo`;
+        // 🟢 Switch back to 'flux' for better stability over 'turbo'
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&retry=${retries}`;
     };
 
     const imageUrl = getImageUrl(image_prompt, image_seed);
-    
-    return ( 
-        <div className="chapter-image-container" style={{ 
-            width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', 
-            borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
-        }}>
+
+    return (
+        <div style={{ width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', borderRadius: '15px', overflow: 'hidden', position: 'relative' }}>
             {!imageLoaded && !imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 }}>
-                    {retryCount > 0 ? `Retrying (Try ${retryCount})... ⏳` : "Painting with AI... 🎨"}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe' }}>
+                    Painting with AI... {retries > 0 ? `(Attempt ${retries + 1})` : ''} 🎨
                 </div>
             )}
 
             {imageError && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b' }}>
-                    <span>Generation timed out.</span>
+                    <span>Generation Timed Out</span>
                     <button 
-                        onClick={() => { setImageError(false); setRetryCount(c => c + 1); }}
-                        style={{ marginTop: '10px', padding: '5px 15px', borderRadius: '15px', cursor: 'pointer' }}
+                        onClick={() => { setImageError(false); setRetries(r => r + 1); }}
+                        style={{ marginTop: '10px', padding: '5px 15px', cursor: 'pointer', borderRadius: '20px' }}
                     >
                         Try Again 🔄
                     </button>
@@ -114,8 +108,8 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
             )}
 
             <img 
-                src={imageUrl + (retryCount > 0 ? `&retry=${retryCount}` : '')}
-                alt="Illustration"
+                src={imageUrl}
+                alt="Story Illustration"
                 style={{ width: '100%', display: 'block', opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.5s' }}
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
