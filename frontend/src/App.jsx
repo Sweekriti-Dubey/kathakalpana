@@ -79,8 +79,9 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     };
 
     const imageUrl = getImageUrl(image_prompt, image_seed);
-    //dummy changesss
-    return (
+    //dumy changes again
+    return ( 
+        
         <div className="chapter-image-container" style={{ 
             width: '100%', minHeight: '300px', backgroundColor: '#2a2a2a', 
             borderRadius: '10px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
