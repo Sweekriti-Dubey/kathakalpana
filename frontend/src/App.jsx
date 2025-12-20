@@ -68,7 +68,6 @@ function Navbar({ isLoggedIn, onLogout }) {
     );
 }
 
-// 🟢 NEW IMAGE LOADER COMPONENT
 const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
@@ -76,7 +75,6 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
         const encodedPrompt = encodeURIComponent(prompt);
-        // Using Flux model with a consistent cute vector style
         return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&style=cute_vector_style`;
     };
 
@@ -87,21 +85,33 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
             width: '100%', minHeight: '300px', backgroundColor: '#2a2a2a', 
             borderRadius: '10px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
         }}>
+            {/* The Loader shows ONLY while imageLoaded is false */}
             {!imageLoaded && !imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 }}>
                     Generating Magic... ⏳
                 </div>
             )}
+
             {imageError && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b' }}>
                     Failed to load image 🖼️
                 </div>
             )}
+
+            {/* The Image is ALWAYS in the code, but invisible until loaded */}
             <img 
                 src={imageUrl}
                 alt="Illustration"
-                style={{ width: '100%', display: imageLoaded ? 'block' : 'none' }}
-                onLoad={() => setImageLoaded(true)}
+                style={{ 
+                    width: '100%', 
+                    display: 'block',
+                    opacity: imageLoaded ? 1 : 0, // 🟢 Key Fix: Use opacity instead of removing from DOM
+                    transition: 'opacity 0.5s ease-in-out'
+                }}
+                onLoad={() => {
+                    console.log("🎨 Image successfully loaded for:", image_prompt);
+                    setImageLoaded(true);
+                }}
                 onError={() => setImageError(true)}
                 loading="lazy"
             />
@@ -215,7 +225,6 @@ function StoryGenerator({ token }) {
                     <div className="story-chapters">
                         {generatedStory.chapters.map((chapter, index) => (
                             <div key={index} className="story-chapter">
-                                {/* 🟢 ChapterImageLoader is now correctly nested */}
                                 <ChapterImageLoader 
                                     image_prompt={chapter.image_prompt} 
                                     image_seed={chapter.image_seed} 
