@@ -120,6 +120,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": user["email"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 # --- STORY GENERATION ---
 @app.post("/generate")
 def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
@@ -127,18 +128,18 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         print(f"=== Generating Story: {request.genre} ===")
         client = Groq(api_key=GROQ_API_KEY)
         
-        # 🟢 UPDATED SYSTEM PROMPT: Now includes image instructions
+        # 🟢 OPTIMIZED PROMPT: Better instructions for the image generator
         system_prompt = (
-            "You are a children's author. Output valid JSON only. "
-            "For each chapter, create a short 'image_prompt' (max 15 words) describing a scene from that chapter. "
-            "The style should be consistent. "
+            "You are a professional children's book author and illustrator. Output valid JSON only. "
+            "For each chapter, create a 'image_prompt' that is highly descriptive but concise (max 20 words). "
+            "Focus on visual details like characters, colors, and setting. "
             "Structure: { \"title\": \"...\", \"moral\": \"...\", \"chapters\": [ "
             "{ \"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"...\" } ] }"
         )
         
         user_prompt = (
-            f"Write a {request.genre} story with {request.chapters} chapters. "
-            "Each chapter should have a title and content (~100 words)."
+            f"Write a {request.genre} story with {request.chapters} chapters for kids. "
+            "Each chapter content should be around 100 words."
         )
 
         chat_completion = client.chat.completions.create(
@@ -150,15 +151,17 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
 
         story_data = json.loads(chat_completion.choices[0].message.content)
 
+        # Ensure every chapter has a unique seed for variety
         if "chapters" in story_data:
             for chapter in story_data["chapters"]:
-                chapter["image_seed"] = random.randint(1000, 99999)
+                chapter["image_seed"] = random.randint(10000, 99999)
 
         return story_data
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # --- LIBRARY ENDPOINTS ---
 @app.post("/save_story")
