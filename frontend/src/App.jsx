@@ -7,26 +7,23 @@ import Login from './Login';
 import Library from './Library'; 
 import StoryReader from './StoryReader';
 
-// --- CHAPTER IMAGE LOADER ---
-// This component handles individual image states and timeouts.
 const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinished }) => {
-    const [status, setStatus] = useState('waiting'); // waiting, painting, success, error
+    const [status, setStatus] = useState('waiting'); 
     const [retries, setRetries] = useState(0);
     const timeoutRef = useRef(null);
 
     const getImageUrl = (prompt, seed) => {
-        if (!prompt) return "https://loremflickr.com/768/512/cartoon";
-        // Simplify prompt drastically to avoid 524 timeouts
-        const cleanPrompt = prompt.split(',')[0].split(' ').slice(0, 7).join(' ');
-        const styledPrompt = encodeURIComponent(`${cleanPrompt}, children's book illustration`);
-        return `https://image.pollinations.ai/prompt/${styledPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux-schnell&retry=${retries}`;
+        if (!prompt) return "https://loremflickr.com/768/512/nature";
+        const cleanPrompt = prompt.split(',')[0].substring(0, 100);
+        const realisticStyle = "highly detailed cinematic realistic style, masterpiece, 8k resolution, natural lighting, sharp focus";
+        const encodedPrompt = encodeURIComponent(`${cleanPrompt}, ${realisticStyle}`);
+        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux`;
     };
 
     useEffect(() => {
         if (isAllowedToLoad && status === 'waiting') {
             setStatus('painting');
             
-            // 40-second timeout to catch 524 errors that don't trigger onError
             timeoutRef.current = setTimeout(() => {
                 if (status !== 'success') setStatus('error');
             }, 40000);
@@ -37,13 +34,12 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
     const handleLoad = () => {
         clearTimeout(timeoutRef.current);
         setStatus('success');
-        // Signal parent that this slot is done (allow next image after cooldown)
         onFinished();
     };
 
     const handleError = () => {
         setStatus('error');
-        onFinished(); // Still signal finished so queue doesn't get stuck
+        onFinished(); 
     };
 
     return (
@@ -93,7 +89,6 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
     );
 };
 
-// --- STORY GENERATOR ---
 function StoryGenerator({ token }) {
     const [genreInput, setGenreInput] = useState('');
     const [generatedStory, setGeneratedStory] = useState(null);
@@ -118,7 +113,6 @@ function StoryGenerator({ token }) {
                 { headers: { Authorization: `Bearer ${token}` } } 
             );
             setGeneratedStory(response.data);
-            // Wait 2 seconds for text to render before starting first image
             setTimeout(() => setCurrentImageIndex(0), 2000);
         } catch (err) {
             console.error(err);
@@ -128,9 +122,7 @@ function StoryGenerator({ token }) {
         }
     };
 
-    // 🟢 Fix: Sequential Queue logic with Cooldown
     const handleImageFinished = useCallback(() => {
-        // Wait 12 seconds before starting next image to satisfy Pollinations rate limit
         setTimeout(() => {
             setCurrentImageIndex(prev => prev + 1);
         }, 12000); 
@@ -219,7 +211,6 @@ function StoryGenerator({ token }) {
     );
 }
 
-// --- NAVIGATION & PAGES ---
 function Navbar({ isLoggedIn, onLogout }) {
     return (
         <nav className="navbar">
@@ -259,7 +250,6 @@ function Footer() {
     return <footer className="app-footer"><p>© 2025 Katha Kalpana</p></footer>;
 }
 
-// --- MAIN APP ---
 function App() {
     const [token, setToken] = useState(localStorage.getItem('token'));
 

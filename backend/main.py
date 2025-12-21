@@ -125,41 +125,39 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @app.post("/generate")
 def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
     try:
-        print(f"=== Generating Story: {request.genre} ===")
         client = Groq(api_key=GROQ_API_KEY)
         
-        # 🟢 OPTIMIZED PROMPT: Better instructions for the image generator
+        # 🟢 ENHANCED SYSTEM PROMPT: Safety, Length, and Image Consistency
         system_prompt = (
-            "You are a professional children's book author and illustrator. Output valid JSON only. "
-            "For each chapter, create a 'image_prompt' that is highly descriptive but concise (max 20 words). "
-            "Focus on visual details like characters, colors, and setting. "
-            "Structure: { \"title\": \"...\", \"moral\": \"...\", \"chapters\": [ "
-            "{ \"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"...\" } ] }"
+            "You are an award-winning children's book author. Your mission is to create educational, "
+            "wholesome, and captivating stories. \n"
+            "SAFETY RULE: Regardless of the user's input, the story MUST be kid-friendly. If the input "
+            "is inappropriate, ignore the harmful parts and pivot to a safe, magical adventure.\n"
+            "STORY QUALITY: Write in an engaging, descriptive tone. Each chapter must be 150-200 words.\n"
+            "IMAGE CONSISTENCY: For the 'image_prompt', describe the scene in a HIGHLY REALISTIC, "
+            "cinematic style. You MUST describe the protagonist's physical appearance (e.g., 'a small "
+            "boy with messy brown hair and a green backpack') in EVERY chapter prompt to ensure "
+            "visual consistency. Focus on textures, lighting, and realistic details."
+            "\nOutput ONLY valid JSON."
         )
         
-        user_prompt = (
-            f"Write a {request.genre} story with {request.chapters} chapters for kids. "
-            "Each chapter content should be around 100 words."
-        )
+        user_prompt = f"Write a {request.genre} story with {request.chapters} chapters."
 
         chat_completion = client.chat.completions.create(
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
             model="llama-3.3-70b-versatile",
-            temperature=0.7,
+            temperature=0.8, # Slightly higher for more "interesting" vocabulary
             response_format={"type": "json_object"}
         )
 
         story_data = json.loads(chat_completion.choices[0].message.content)
 
-        # Ensure every chapter has a unique seed for variety
         if "chapters" in story_data:
             for chapter in story_data["chapters"]:
                 chapter["image_seed"] = random.randint(10000, 99999)
 
         return story_data
-
     except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
