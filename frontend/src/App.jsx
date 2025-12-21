@@ -69,120 +69,163 @@ function Navbar({ isLoggedIn, onLogout }) {
 }
 
 
-const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onLoadComplete }) => {
+const ChapterImageLoader = ({ 
+    image_prompt, 
+    image_seed, 
+    chapterIndex, 
+    queueStatus, 
+    queuePosition, 
+    totalInQueue,
+    cooldownSeconds,
+    onRetry,
+    onImageStatusChange
+}) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
-    const [retries, setRetries] = useState(0);
-    const [shouldLoad, setShouldLoad] = useState(false);
-
-    // Only start loading when allowed
-    useEffect(() => {
-        if (isAllowedToLoad && !shouldLoad) {
-            console.log("🟢 Image now allowed to load");
-            setShouldLoad(true);
-        }
-    }, [isAllowedToLoad, shouldLoad]);
-
-    // Manual 30-second timeout to catch proxy timeouts that onError misses
-    useEffect(() => {
-        if (shouldLoad && !imageLoaded && !imageError) {
-            const timer = setTimeout(() => {
-                console.log("⏰ 30-second timeout reached - forcing error state");
-                setImageError(true); 
-                // Notify parent that this image is done (even if it failed)
-                if (onLoadComplete) onLoadComplete();
-            }, 30000);
-            return () => clearTimeout(timer);
-        }
-    }, [imageLoaded, imageError, retries, shouldLoad, onLoadComplete]);
+    const [loadStartTime, setLoadStartTime] = useState(null);
+    const hasReportedRef = useRef(false);
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
         
-        // Simplify prompt: take first 10 words and remove special characters
         const words = prompt.replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 0);
-        const simplifiedPrompt = words.slice(0, 10).join(' ');
-        const styledPrompt = `${simplifiedPrompt}, simple illustration`;
+        const ultraShortPrompt = words.slice(0, 5).join(' ');
         
-        // Use flux-schnell model with retry parameter
-        return `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux-schnell&retry=${retries}`;
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(ultraShortPrompt)}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux-schnell`;
     };
 
-    const handleRetry = () => {
-        console.log("🔄 Retry button clicked - resetting all states");
-        setImageError(false);
-        setImageLoaded(false);
-        setRetries(r => r + 1);
+    useEffect(() => {
+        if (queueStatus === 'loading' && !loadStartTime) {
+            console.log(`🎨 Chapter ${chapterIndex + 1}: Starting image generation`);
+            setLoadStartTime(Date.now());
+            setImageLoaded(false);
+            setImageError(false);
+            hasReportedRef.current = false;
+        }
+    }, [queueStatus, chapterIndex, loadStartTime]);
+
+    // 40-second manual timeout
+    useEffect(() => {
+        if (queueStatus === 'loading' && loadStartTime && !imageLoaded && !imageError) {
+            const timer = setTimeout(() => {
+                const elapsed = ((Date.now() - loadStartTime) / 1000).toFixed(1);
+                console.log(`⏰ Chapter ${chapterIndex + 1}: 40s timeout reached (actual: ${elapsed}s)`);
+                setImageError(true);
+            }, 40000);
+            return () => clearTimeout(timer);
+        }
+    }, [queueStatus, loadStartTime, imageLoaded, imageError, chapterIndex]);
+
+    // Report status changes to parent
+    useEffect(() => {
+        if (!hasReportedRef.current && (imageLoaded || imageError)) {
+            hasReportedRef.current = true;
+            if (onImageStatusChange) {
+                onImageStatusChange(chapterIndex, imageLoaded);
+            }
+        }
+    }, [imageLoaded, imageError, chapterIndex, onImageStatusChange]);
+
+    const getStatusDisplay = () => {
+        if (imageLoaded) {
+            return {
+                emoji: '✅',
+                title: 'Ready!',
+                subtitle: 'Image loaded successfully',
+                color: '#4facfe'
+            };
+        }
+        
+        if (imageError) {
+            return {
+                emoji: '⚠️',
+                title: 'Timeout Error',
+                subtitle: 'Image took too long to generate',
+                color: '#ff6b6b'
+            };
+        }
+
+        switch (queueStatus) {
+            case 'pending':
+                return {
+                    emoji: '⏸️',
+                    title: 'Waiting in queue...',
+                    subtitle: `Position: ${queuePosition + 1} of ${totalInQueue}`,
+                    color: '#888'
+                };
+            case 'resting':
+                return {
+                    emoji: '⏳',
+                    title: 'Resting (Rate Limit)...',
+                    subtitle: `Cooldown: ${cooldownSeconds}s remaining`,
+                    color: '#ffa500'
+                };
+            case 'loading':
+                return {
+                    emoji: '🎨',
+                    title: 'Painting with AI...',
+                    subtitle: 'Up to 40 seconds',
+                    color: '#4facfe'
+                };
+            default:
+                return {
+                    emoji: '💤',
+                    title: 'Idle',
+                    subtitle: '',
+                    color: '#666'
+                };
+        }
     };
+
+    const status = getStatusDisplay();
 
     return (
         <div className="chapter-image-container" style={{ 
             width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', 
             borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
         }}>
-            {/* Loading State */}
-            {!imageLoaded && !imageError && (
+            {!imageLoaded && (
                 <div style={{ 
                     position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 
+                    alignItems: 'center', justifyContent: 'center', color: status.color, 
+                    zIndex: imageError ? 3 : 2, padding: '20px',
+                    background: imageError ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)' : 'transparent'
                 }}>
-                    {shouldLoad ? (
-                        <>
-                            <div style={{ fontSize: '18px', marginBottom: '10px' }}>Generating Magic ✨</div>
-                            <div style={{ fontSize: '14px', color: '#888' }}>This may take up to 30 seconds...</div>
-                        </>
-                    ) : (
-                        <>
-                            <div style={{ fontSize: '18px', marginBottom: '10px' }}>In Queue ⏳</div>
-                            <div style={{ fontSize: '14px', color: '#888' }}>Waiting for previous images to load...</div>
-                        </>
+                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>{status.emoji}</div>
+                    <div style={{ 
+                        fontSize: '18px', marginBottom: '8px', fontWeight: '600', textAlign: 'center'
+                    }}>
+                        {status.title}
+                    </div>
+                    {status.subtitle && (
+                        <div style={{ fontSize: '14px', color: '#aaa', textAlign: 'center', marginBottom: '15px' }}>
+                            {status.subtitle}
+                        </div>
+                    )}
+                    
+                    {imageError && (
+                        <button 
+                            onClick={() => onRetry(chapterIndex)}
+                            style={{ 
+                                padding: '15px 35px', 
+                                backgroundColor: '#4facfe', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '25px', 
+                                cursor: 'pointer', 
+                                fontWeight: 'bold',
+                                fontSize: '16px',
+                                boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+                                transition: 'all 0.3s ease'
+                            }}
+                        >
+                            🔄 Retry This Image
+                        </button>
                     )}
                 </div>
             )}
 
-            {/* Error State with Prominent Retry Button */}
-            {imageError && (
-                <div style={{ 
-                    position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', 
-                    alignItems: 'center', justifyContent: 'center', 
-                    background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)', 
-                    zIndex: 3, padding: '20px'
-                }}>
-                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>⏱️</div>
-                    <span style={{ 
-                        fontSize: '18px', color: '#ff6b6b', marginBottom: '10px', fontWeight: '600',
-                        textAlign: 'center'
-                    }}>
-                        Generation took too long
-                    </span>
-                    <span style={{ fontSize: '14px', color: '#aaa', marginBottom: '20px', textAlign: 'center' }}>
-                        The AI is under heavy load. Try again for a faster result!
-                    </span>
-                    <button 
-                        onClick={handleRetry}
-                        style={{ 
-                            padding: '15px 35px', 
-                            backgroundColor: '#4facfe', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: '25px', 
-                            cursor: 'pointer', 
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-                            transition: 'all 0.3s ease',
-                            transform: 'scale(1)'
-                        }}
-                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                    >
-                        🔄 Retry Generation
-                    </button>
-                </div>
-            )}
-
-            {/* The Image - only load when allowed */}
-            {shouldLoad && (
+            {queueStatus === 'loading' && (
                 <img 
                     src={getImageUrl(image_prompt, image_seed)}
                     alt="Chapter Illustration"
@@ -193,27 +236,15 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onLoadC
                         transition: 'opacity 0.5s ease-in-out' 
                     }}
                     onLoad={() => {
-                        console.log("✅ Image loaded successfully");
+                        const loadTime = ((Date.now() - loadStartTime) / 1000).toFixed(1);
+                        console.log(`✅ Chapter ${chapterIndex + 1}: Image loaded in ${loadTime}s`);
                         setImageLoaded(true);
                         setImageError(false);
-                        // Notify parent with 3-second delay
-                        if (onLoadComplete) {
-                            setTimeout(() => {
-                                console.log("⏭️ Moving to next image after 3-second delay");
-                                onLoadComplete();
-                            }, 3000);
-                        }
                     }}
-                    onError={() => {
-                        console.log("❌ Image onError triggered");
+                    onError={(e) => {
+                        console.log(`❌ Chapter ${chapterIndex + 1}: Image failed to load`);
+                        console.log('Error event:', e.type);
                         setImageError(true);
-                        // Notify parent with 3-second delay even on error
-                        if (onLoadComplete) {
-                            setTimeout(() => {
-                                console.log("⏭️ Moving to next image after error + 3-second delay");
-                                onLoadComplete();
-                            }, 3000);
-                        }
                     }}
                 />
             )}
@@ -229,15 +260,120 @@ function StoryGenerator({ token }) {
     const [saving, setSaving] = useState(false); 
     const [chapterCount, setChapterCount] = useState(3);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [currentLoadingIndex, setCurrentLoadingIndex] = useState(0);
+    
+    const [imageQueue, setImageQueue] = useState([]); 
+    const [currentProcessingIndex, setCurrentProcessingIndex] = useState(null);
+    const [queueStatuses, setQueueStatuses] = useState({}); 
+    const [cooldownRemaining, setCooldownRemaining] = useState(0);
+    const [waitTime, setWaitTime] = useState(15); 
+    const [failedImages, setFailedImages] = useState(new Set());
+    
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (generatedStory && generatedStory.chapters) {
+            const chapterIndices = generatedStory.chapters.map((_, idx) => idx);
+            console.log('🗂️ Initializing image queue:', chapterIndices);
+            setImageQueue(chapterIndices);
+            
+            const initialStatuses = {};
+            chapterIndices.forEach(idx => {
+                initialStatuses[idx] = 'pending';
+            });
+            setQueueStatuses(initialStatuses);
+            setCurrentProcessingIndex(null);
+            setFailedImages(new Set());
+        }
+    }, [generatedStory]);
+
+    useEffect(() => {
+        if (!generatedStory || imageQueue.length === 0) return;
+
+        if (currentProcessingIndex === null && cooldownRemaining === 0) {
+            const nextIndex = imageQueue[0];
+            console.log(`🚀 Starting image generation for chapter ${nextIndex + 1}`);
+            
+            setCurrentProcessingIndex(nextIndex);
+            setQueueStatuses(prev => ({ ...prev, [nextIndex]: 'loading' }));
+        }
+    }, [imageQueue, currentProcessingIndex, cooldownRemaining, generatedStory]);
+
+    useEffect(() => {
+        if (cooldownRemaining > 0) {
+            const timer = setTimeout(() => {
+                setCooldownRemaining(prev => prev - 1);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [cooldownRemaining]);
+
+    const handleImageStatusChange = useCallback((chapterIndex, success) => {
+        console.log(`${success ? '✅' : '❌'} Chapter ${chapterIndex + 1} image ${success ? 'loaded' : 'failed'}`);
+        
+        setImageQueue(prev => prev.filter(idx => idx !== chapterIndex));
+        
+        setQueueStatuses(prev => ({ 
+            ...prev, 
+            [chapterIndex]: success ? 'success' : 'error' 
+        }));
+
+        if (!success) {
+            setFailedImages(prev => new Set([...prev, chapterIndex]));
+            setWaitTime(prev => {
+                const newWait = Math.min(prev * 2, 60); 
+                console.log(`⚠️ Image failed - increasing wait time to ${newWait}s`);
+                return newWait;
+            });
+        } else {
+            setWaitTime(prev => Math.max(Math.floor(prev * 0.75), 15));
+        }
+
+        setCurrentProcessingIndex(null);
+
+        setImageQueue(prevQueue => {
+            if (prevQueue.length > 0) {
+                console.log(`⏸️ Starting ${waitTime}s cooldown before next image`);
+                setCooldownRemaining(waitTime);
+            }
+            return prevQueue;
+        });
+    }, [waitTime]);
+
+    useEffect(() => {
+        if (cooldownRemaining > 0 && imageQueue.length > 0) {
+            const nextIndex = imageQueue[0];
+            if (queueStatuses[nextIndex] !== 'resting') {
+                setQueueStatuses(prev => ({ ...prev, [nextIndex]: 'resting' }));
+            }
+        }
+    }, [cooldownRemaining, imageQueue, queueStatuses]);
+
+    const handleRetryImage = (chapterIndex) => {
+        console.log(`🔄 Retrying image for chapter ${chapterIndex + 1}`);
+        
+        if (!imageQueue.includes(chapterIndex)) {
+            setImageQueue(prev => [...prev, chapterIndex]);
+        }
+        
+        setQueueStatuses(prev => ({ ...prev, [chapterIndex]: 'pending' }));
+        
+        setFailedImages(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(chapterIndex);
+            return newSet;
+        });
+    };
 
     const fetchStory = async () => {
         if (!genreInput.trim()) return alert("Please enter a genre!");
         console.log("🚀 Starting story generation for genre:", genreInput);
         setLoading(true);
         setGeneratedStory(null);
-        setCurrentLoadingIndex(0); // Reset image loading queue
+        setImageQueue([]);
+        setCurrentProcessingIndex(null);
+        setQueueStatuses({});
+        setCooldownRemaining(0);
+        setWaitTime(15); 
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
 
@@ -257,14 +393,6 @@ function StoryGenerator({ token }) {
             setLoading(false);
             console.log("🏁 Story generation process completed");
         }
-    };
-
-    const handleImageLoadComplete = () => {
-        setCurrentLoadingIndex(prev => {
-            const next = prev + 1;
-            console.log(`📸 Image ${prev} completed. Unlocking image ${next}`);
-            return next;
-        });
     };
 
     const saveStoryToLibrary = async () => {
@@ -336,20 +464,30 @@ function StoryGenerator({ token }) {
                     </div>
                     
                     <div className="story-chapters">
-                        {generatedStory.chapters.map((chapter, index) => (
-                            <div key={index} className="story-chapter">
-                                <ChapterImageLoader 
-                                    image_prompt={chapter.image_prompt} 
-                                    image_seed={chapter.image_seed}
-                                    isAllowedToLoad={index <= currentLoadingIndex}
-                                    onLoadComplete={handleImageLoadComplete}
-                                />
-                                <div className="chapter-content">
-                                    <h4>{chapter.title}</h4>
-                                    <p>{chapter.content}</p>
+                        {generatedStory.chapters.map((chapter, index) => {
+                            const queuePos = imageQueue.indexOf(index);
+                            const status = queueStatuses[index] || 'pending';
+                            
+                            return (
+                                <div key={index} className="story-chapter">
+                                    <ChapterImageLoader 
+                                        image_prompt={chapter.image_prompt} 
+                                        image_seed={chapter.image_seed}
+                                        chapterIndex={index}
+                                        queueStatus={status}
+                                        queuePosition={queuePos >= 0 ? queuePos : imageQueue.length}
+                                        totalInQueue={imageQueue.length}
+                                        cooldownSeconds={cooldownRemaining}
+                                        onRetry={handleRetryImage}
+                                        onImageStatusChange={handleImageStatusChange}
+                                    />
+                                    <div className="chapter-content">
+                                        <h4>{chapter.title}</h4>
+                                        <p>{chapter.content}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     
                     <div className="story-moral">
