@@ -69,21 +69,32 @@ function Navbar({ isLoggedIn, onLogout }) {
 }
 
 
-const ChapterImageLoader = ({ image_prompt, image_seed }) => {
+const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onLoadComplete }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [retries, setRetries] = useState(0);
+    const [shouldLoad, setShouldLoad] = useState(false);
+
+    // Only start loading when allowed
+    useEffect(() => {
+        if (isAllowedToLoad && !shouldLoad) {
+            console.log("🟢 Image now allowed to load");
+            setShouldLoad(true);
+        }
+    }, [isAllowedToLoad, shouldLoad]);
 
     // Manual 30-second timeout to catch proxy timeouts that onError misses
     useEffect(() => {
-        if (!imageLoaded && !imageError) {
+        if (shouldLoad && !imageLoaded && !imageError) {
             const timer = setTimeout(() => {
                 console.log("⏰ 30-second timeout reached - forcing error state");
                 setImageError(true); 
+                // Notify parent that this image is done (even if it failed)
+                if (onLoadComplete) onLoadComplete();
             }, 30000);
             return () => clearTimeout(timer);
         }
-    }, [imageLoaded, imageError, retries]);
+    }, [imageLoaded, imageError, retries, shouldLoad, onLoadComplete]);
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
@@ -115,8 +126,17 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
                     position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 
                 }}>
-                    <div style={{ fontSize: '18px', marginBottom: '10px' }}>Generating Magic ✨</div>
-                    <div style={{ fontSize: '14px', color: '#888' }}>This may take up to 30 seconds...</div>
+                    {shouldLoad ? (
+                        <>
+                            <div style={{ fontSize: '18px', marginBottom: '10px' }}>Generating Magic ✨</div>
+                            <div style={{ fontSize: '14px', color: '#888' }}>This may take up to 30 seconds...</div>
+                        </>
+                    ) : (
+                        <>
+                            <div style={{ fontSize: '18px', marginBottom: '10px' }}>In Queue ⏳</div>
+                            <div style={{ fontSize: '14px', color: '#888' }}>Waiting for previous images to load...</div>
+                        </>
+                    )}
                 </div>
             )}
 
@@ -161,26 +181,42 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
                 </div>
             )}
 
-            {/* The Image */}
-            <img 
-                src={getImageUrl(image_prompt, image_seed)}
-                alt="Chapter Illustration"
-                style={{ 
-                    width: '100%', 
-                    display: 'block', 
-                    opacity: imageLoaded ? 1 : 0, 
-                    transition: 'opacity 0.5s ease-in-out' 
-                }}
-                onLoad={() => {
-                    console.log("✅ Image loaded successfully");
-                    setImageLoaded(true);
-                    setImageError(false);
-                }}
-                onError={() => {
-                    console.log("❌ Image onError triggered");
-                    setImageError(true);
-                }}
-            />
+            {/* The Image - only load when allowed */}
+            {shouldLoad && (
+                <img 
+                    src={getImageUrl(image_prompt, image_seed)}
+                    alt="Chapter Illustration"
+                    style={{ 
+                        width: '100%', 
+                        display: 'block', 
+                        opacity: imageLoaded ? 1 : 0, 
+                        transition: 'opacity 0.5s ease-in-out' 
+                    }}
+                    onLoad={() => {
+                        console.log("✅ Image loaded successfully");
+                        setImageLoaded(true);
+                        setImageError(false);
+                        // Notify parent with 3-second delay
+                        if (onLoadComplete) {
+                            setTimeout(() => {
+                                console.log("⏭️ Moving to next image after 3-second delay");
+                                onLoadComplete();
+                            }, 3000);
+                        }
+                    }}
+                    onError={() => {
+                        console.log("❌ Image onError triggered");
+                        setImageError(true);
+                        // Notify parent with 3-second delay even on error
+                        if (onLoadComplete) {
+                            setTimeout(() => {
+                                console.log("⏭️ Moving to next image after error + 3-second delay");
+                                onLoadComplete();
+                            }, 3000);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };
@@ -193,6 +229,7 @@ function StoryGenerator({ token }) {
     const [saving, setSaving] = useState(false); 
     const [chapterCount, setChapterCount] = useState(3);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [currentLoadingIndex, setCurrentLoadingIndex] = useState(0);
     const navigate = useNavigate();
 
     const fetchStory = async () => {
@@ -200,6 +237,7 @@ function StoryGenerator({ token }) {
         console.log("🚀 Starting story generation for genre:", genreInput);
         setLoading(true);
         setGeneratedStory(null);
+        setCurrentLoadingIndex(0); // Reset image loading queue
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
 
@@ -219,6 +257,14 @@ function StoryGenerator({ token }) {
             setLoading(false);
             console.log("🏁 Story generation process completed");
         }
+    };
+
+    const handleImageLoadComplete = () => {
+        setCurrentLoadingIndex(prev => {
+            const next = prev + 1;
+            console.log(`📸 Image ${prev} completed. Unlocking image ${next}`);
+            return next;
+        });
     };
 
     const saveStoryToLibrary = async () => {
@@ -294,7 +340,9 @@ function StoryGenerator({ token }) {
                             <div key={index} className="story-chapter">
                                 <ChapterImageLoader 
                                     image_prompt={chapter.image_prompt} 
-                                    image_seed={chapter.image_seed} 
+                                    image_seed={chapter.image_seed}
+                                    isAllowedToLoad={index <= currentLoadingIndex}
+                                    onLoadComplete={handleImageLoadComplete}
                                 />
                                 <div className="chapter-content">
                                     <h4>{chapter.title}</h4>
