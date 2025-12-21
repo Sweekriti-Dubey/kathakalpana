@@ -74,23 +74,34 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
     const [imageError, setImageError] = useState(false);
     const [retries, setRetries] = useState(0);
 
-    // 🟢 NEW: Manual Timeout Logic
+    // Manual 30-second timeout to catch proxy timeouts that onError misses
     useEffect(() => {
         if (!imageLoaded && !imageError) {
             const timer = setTimeout(() => {
-                console.log("⏰ Image generation taking too long, showing Try Again button");
+                console.log("⏰ 30-second timeout reached - forcing error state");
                 setImageError(true); 
-            }, 30000); // 30 seconds
+            }, 30000);
             return () => clearTimeout(timer);
         }
     }, [imageLoaded, imageError, retries]);
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/cartoon";
-        // Simplify prompt for faster generation
-        const cleanPrompt = prompt.split(',')[0].substring(0, 60);
-        const styledPrompt = `${cleanPrompt}, simple flat vector illustration`;
-        return `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&retry=${retries}`;
+        
+        // Simplify prompt: take first 10 words and remove special characters
+        const words = prompt.replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 0);
+        const simplifiedPrompt = words.slice(0, 10).join(' ');
+        const styledPrompt = `${simplifiedPrompt}, simple illustration`;
+        
+        // Use flux-schnell model with retry parameter
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(styledPrompt)}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux-schnell&retry=${retries}`;
+    };
+
+    const handleRetry = () => {
+        console.log("🔄 Retry button clicked - resetting all states");
+        setImageError(false);
+        setImageLoaded(false);
+        setRetries(r => r + 1);
     };
 
     return (
@@ -98,48 +109,77 @@ const ChapterImageLoader = ({ image_prompt, image_seed }) => {
             width: '100%', minHeight: '300px', backgroundColor: '#1a1a1a', 
             borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '20px' 
         }}>
-            {/* 1. Loading State */}
+            {/* Loading State */}
             {!imageLoaded && !imageError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 }}>
-                    Painting your story... 🎨
+                <div style={{ 
+                    position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', color: '#4facfe', zIndex: 2 
+                }}>
+                    <div style={{ fontSize: '18px', marginBottom: '10px' }}>Generating Magic ✨</div>
+                    <div style={{ fontSize: '14px', color: '#888' }}>This may take up to 30 seconds...</div>
                 </div>
             )}
 
-            {/* 2. Error State (NOW RE-DESIGNED TO BE VISIBLE) */}
+            {/* Error State with Prominent Retry Button */}
             {imageError && (
                 <div style={{ 
                     position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', 
-                    alignItems: 'center', justifyContent: 'center', color: '#ff4b2b', 
-                    background: 'rgba(0,0,0,0.8)', zIndex: 3 
+                    alignItems: 'center', justifyContent: 'center', 
+                    background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)', 
+                    zIndex: 3, padding: '20px'
                 }}>
-                    <span style={{ marginBottom: '10px' }}>Generation is slow right now 🐢</span>
+                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>⏱️</div>
+                    <span style={{ 
+                        fontSize: '18px', color: '#ff6b6b', marginBottom: '10px', fontWeight: '600',
+                        textAlign: 'center'
+                    }}>
+                        Generation took too long
+                    </span>
+                    <span style={{ fontSize: '14px', color: '#aaa', marginBottom: '20px', textAlign: 'center' }}>
+                        The AI is under heavy load. Try again for a faster result!
+                    </span>
                     <button 
-                        onClick={() => { 
-                            setImageError(false); 
-                            setImageLoaded(false);
-                            setRetries(r => r + 1); 
-                        }}
+                        onClick={handleRetry}
                         style={{ 
-                            padding: '8px 20px', backgroundColor: '#4facfe', color: 'white', 
-                            border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' 
+                            padding: '15px 35px', 
+                            backgroundColor: '#4facfe', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '25px', 
+                            cursor: 'pointer', 
+                            fontWeight: 'bold',
+                            fontSize: '16px',
+                            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+                            transition: 'all 0.3s ease',
+                            transform: 'scale(1)'
                         }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                     >
-                        Retry Generation 🔄
+                        🔄 Retry Generation
                     </button>
                 </div>
             )}
 
-            {/* 3. The Image */}
+            {/* The Image */}
             <img 
                 src={getImageUrl(image_prompt, image_seed)}
-                alt="Illustration"
-                style={{ width: '100%', display: 'block', opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.5s' }}
+                alt="Chapter Illustration"
+                style={{ 
+                    width: '100%', 
+                    display: 'block', 
+                    opacity: imageLoaded ? 1 : 0, 
+                    transition: 'opacity 0.5s ease-in-out' 
+                }}
                 onLoad={() => {
-                    console.log("🎨 Success!");
+                    console.log("✅ Image loaded successfully");
                     setImageLoaded(true);
                     setImageError(false);
                 }}
-                onError={() => setImageError(true)}
+                onError={() => {
+                    console.log("❌ Image onError triggered");
+                    setImageError(true);
+                }}
             />
         </div>
     );
