@@ -127,19 +127,19 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
     try:
         client = Groq(api_key=GROQ_API_KEY)
         
-        # 🟢 ENHANCED SYSTEM PROMPT: Safety, Length, and Image Consistency
         system_prompt = (
-            "You are an award-winning children's book author. Your mission is to create educational, "
-            "wholesome, and captivating stories. \n"
-            "SAFETY RULE: Regardless of the user's input, the story MUST be kid-friendly. If the input "
-            "is inappropriate, ignore the harmful parts and pivot to a safe, magical adventure.\n"
-            "STORY QUALITY: Write in an engaging, descriptive tone. Each chapter must be 150-200 words.\n"
-            "IMAGE CONSISTENCY: For the 'image_prompt', describe the scene in a HIGHLY REALISTIC, "
-            "cinematic style. You MUST describe the protagonist's physical appearance (e.g., 'a small "
-            "boy with messy brown hair and a green backpack') in EVERY chapter prompt to ensure "
-            "visual consistency. Focus on textures, lighting, and realistic details."
-            "\nOutput ONLY valid JSON."
-        )
+            "You are a children's author. Output valid JSON only. "
+            "MANDATORY JSON STRUCTURE: \n"
+            "{\n"
+            "  \"title\": \"Story Title\",\n"
+            "  \"moral\": \"A short moral message\",\n"
+            "  \"chapters\": [\n"
+            "    { \"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"...\" }\n"
+            "  ]\n"
+            "}\n"
+            "Do not include any text outside this JSON structure. "
+            "Ensure 'chapters' is always an array of objects."
+            )
         
         user_prompt = f"Write a {request.genre} story with {request.chapters} chapters."
 

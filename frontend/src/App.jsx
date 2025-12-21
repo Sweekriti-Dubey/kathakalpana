@@ -175,10 +175,10 @@ function StoryGenerator({ token }) {
                 </button>
             </div>
 
-            {generatedStory && (
+            {generatedStory && generatedStory.chapters &&(
                 <div className="generated-story">
                     <div className="story-header">
-                        <h3>{generatedStory.title}</h3>
+                        <h3>{generatedStory.title || "A Magical Tale"}</h3>
                         <div style={{display:'flex', gap:'10px'}}>
                             <button className="audio-btn" onClick={toggleAudio}>
                                 {isSpeaking ? "Pause" : "Listen"}
@@ -190,7 +190,7 @@ function StoryGenerator({ token }) {
                     </div>
                     
                     <div className="story-chapters">
-                        {generatedStory.chapters.map((chapter, index) => (
+                        {generatedStory.chapters?.map((chapter, index) => (
                             <div key={index} className="story-chapter">
                                 <ChapterImageLoader 
                                     image_prompt={chapter.image_prompt} 
