@@ -14,10 +14,10 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/nature";
-        const cleanPrompt = prompt.substring(0, 100);
-        const pixarStyle = "3D Pixar style render, Disney character design, Unreal Engine 5, soft volumetric lighting, vibrant colors, highly detailed textures, cute, masterpiece, 8k, kid-friendly";
+        const cleanPrompt = prompt.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 180);
+        const pixarStyle = "3D Pixar style render, cinematic character interaction, Disney-style animation, soft volumetric lighting, vibrant colors, kid-friendly, 8k";
         const encodedPrompt = encodeURIComponent(`${cleanPrompt}, ${pixarStyle}`);
-        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux`;
+        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux&retry=${retries}`;
     };
 
     useEffect(() => {
@@ -25,8 +25,11 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
             setStatus('painting');
             
             timeoutRef.current = setTimeout(() => {
-                if (status !== 'success') setStatus('error');
-            }, 40000);
+                if (status !== 'success') {
+                    console.log('Image generation timed out after 60s');
+                    setStatus('error');
+                }
+            }, 60000);
         }
         return () => clearTimeout(timeoutRef.current);
     }, [isAllowedToLoad, status]);
