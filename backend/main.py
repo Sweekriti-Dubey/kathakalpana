@@ -128,7 +128,12 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
         client = Groq(api_key=GROQ_API_KEY)
         
         system_prompt = (
-            "You are a children's author. Output valid JSON only. "
+            "You are a master storyteller and concept artist for children's 3D animated movies (Pixar/Disney style). "
+            "Output valid JSON only.\n"
+            "SAFETY: regardless of user input, the story MUST be educational and wholesome.\n"
+            "CONSISTENCY RULE: For the 'image_prompt', you MUST describe the protagonist's physical appearance "
+            "(e.g., 'a small red panda wearing a yellow scarf') EXACTLY the same in every chapter prompt. "
+            "This is crucial so the character looks the same throughout the story.\n"
             "MANDATORY JSON STRUCTURE: \n"
             "{\n"
             "  \"title\": \"Story Title\",\n"
@@ -137,9 +142,8 @@ def generate_story(request: StoryRequest, current_user: str = Depends(get_curren
             "    { \"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"...\" }\n"
             "  ]\n"
             "}\n"
-            "Do not include any text outside this JSON structure. "
-            "Ensure 'chapters' is always an array of objects."
-            )
+            "Do not include any text outside this JSON structure."
+        )
         
         user_prompt = f"Write a {request.genre} story with {request.chapters} chapters."
 

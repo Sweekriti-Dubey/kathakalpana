@@ -14,9 +14,9 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
 
     const getImageUrl = (prompt, seed) => {
         if (!prompt) return "https://loremflickr.com/768/512/nature";
-        const cleanPrompt = prompt.split(',')[0].substring(0, 100);
-        const realisticStyle = "highly detailed cinematic realistic style, masterpiece, 8k resolution, natural lighting, sharp focus";
-        const encodedPrompt = encodeURIComponent(`${cleanPrompt}, ${realisticStyle}`);
+        const cleanPrompt = prompt.substring(0, 100);
+        const pixarStyle = "3D Pixar style render, Disney character design, Unreal Engine 5, soft volumetric lighting, vibrant colors, highly detailed textures, cute, masterpiece, 8k, kid-friendly";
+        const encodedPrompt = encodeURIComponent(`${cleanPrompt}, ${pixarStyle}`);
         return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=512&seed=${seed || 1234}&nologo=true&model=flux`;
     };
 
