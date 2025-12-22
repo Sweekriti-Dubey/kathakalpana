@@ -48,21 +48,39 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
             borderRadius: '15px', overflow: 'hidden', position: 'relative', marginBottom: '25px',
             border: status === 'painting' ? '2px solid #4facfe' : '2px solid transparent'
         }}>
+            <img 
+                src={getImageUrl(image_prompt, image_seed)}
+                alt="Illustration"
+                style={{ 
+                    width: '100%', 
+                    height: 'auto',
+                    minHeight: '350px',
+                    objectFit: 'cover',
+                    display: 'block',
+                    opacity: status === 'success' ? 1 : 0, 
+                    transition: 'opacity 0.8s ease-in-out',
+                    position: 'relative',
+                    zIndex: 1
+                }}
+                onLoad={handleLoad}
+                onError={handleError}
+            />
+            
             {status === 'waiting' && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', zIndex: 2, background: '#1a1a1a' }}>
                     Waiting in queue... ⏳
                 </div>
             )}
             
             {status === 'painting' && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#4facfe', background: '#111' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#4facfe', background: '#111', zIndex: 2 }}>
                     <div className="spinner">🎨</div>
                     <span style={{ marginTop: '10px' }}>Painting Chapter...</span>
                 </div>
             )}
 
             {status === 'error' && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b', background: 'rgba(0,0,0,0.8)' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ff4b2b', background: 'rgba(0,0,0,0.8)', zIndex: 2 }}>
                     <span style={{ marginBottom: '10px' }}>Server busy or timed out 🐢</span>
                     <button 
                         onClick={() => { setRetries(r => r + 1); setStatus('painting'); }}
@@ -72,19 +90,6 @@ const ChapterImageLoader = ({ image_prompt, image_seed, isAllowedToLoad, onFinis
                     </button>
                 </div>
             )}
-
-            <img 
-                src={getImageUrl(image_prompt, image_seed)}
-                alt="Illustration"
-                style={{ 
-                    width: '100%', 
-                    display: 'block',
-                    opacity: status === 'success' ? 1 : 0, 
-                    transition: 'opacity 0.8s ease-in-out'
-                }}
-                onLoad={handleLoad}
-                onError={handleError}
-            />
         </div>
     );
 };
