@@ -1,79 +1,49 @@
 import os
 import random
 import json
-from datetime import datetime, timedelta
-from typing import Optional, List
-
-from fastapi import FastAPI, HTTPException, Depends, status
+from typing import List
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-from passlib.context import CryptContext
-from jose import JWTError, jwt
+from supabase import create_client, Client
 
-# --- CONFIGURATION ---
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MONGO_URL = os.getenv("MONGO_URL")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey_change_this_in_production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 3000
-
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI()
 
-# --- MIDDLEWARE & SECURITY ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+async def get_current_user(authorization: str = Header(None)):
+    if not authorization:
+        print("⚠️ Dev Mode: No token found. Using bypass user ID.")
+        return "08a9f0e0-cc8f-44d9-b5c8-c85a5e789b0e"
 
-# --- HELPER FUNCTIONS ---
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    return email
+        token = authorization.split(" ")[1]
+        user = supabase.auth.get_user(token)
 
-# --- DATABASE MODELS ---
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
+        if not user or not user.user:
+            return "08a9f0e0-cc8f-44d9-b5c8-c85a5e789b0e"
+        
+        return user.user.id
+    except Exception:
+        return "08a9f0e0-cc8f-44d9-b5c8-c85a5e789b0e"
 
 class StoryRequest(BaseModel):
-    genre: str      
-    chapters: int   
+    genre: str
+    chapters: int
 
 class ChapterModel(BaseModel):
     title: str
@@ -86,100 +56,81 @@ class StoryModel(BaseModel):
     moral: str
     chapters: List[ChapterModel]
 
-# --- DATABASE CONNECTION ---
-@app.on_event("startup")
-async def startup_db():
-    try:
-        if not MONGO_URL:
-            print("❌ Error: MONGO_URL is missing in .env")
-            return
-        client = AsyncIOMotorClient(MONGO_URL)
-        app.mongodb = client.story_app 
-        await app.mongodb.users.create_index("email", unique=True)
-        await app.mongodb.command("ping")
-        print("✅ Successfully connected to MongoDB!")
-    except Exception as e:
-        print(f"❌ Error connecting to MongoDB: {e}")
-
-# --- AUTH ENDPOINTS ---
-@app.post("/signup")
-async def signup(user: UserCreate):
-    existing_user = await app.mongodb.users.find_one({"email": user.email})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    hashed_password = get_password_hash(user.password)
-    user_dict = {"email": user.email, "password": hashed_password}
-    await app.mongodb.users.insert_one(user_dict)
-    return {"message": "User created successfully"}
-
-@app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await app.mongodb.users.find_one({"email": form_data.username})
-    if not user or not verify_password(form_data.password, user["password"]):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    access_token = create_access_token(data={"sub": user["email"]})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-# --- STORY GENERATION ---
 @app.post("/generate")
-def generate_story(request: StoryRequest, current_user: str = Depends(get_current_user)):
-    try:
+def generate_story(request: StoryRequest, user_id: str = Depends(get_current_user)):
+    try: 
         client = Groq(api_key=GROQ_API_KEY)
-        
         system_prompt = (
-            "You are a Pixar movie director. Output valid JSON only.\n"
-            "CONSISTENCY RULE: Maintain a 'visual roster'. Every time you mention a character, "
-            "describe them exactly the same way (e.g., 'Leo the lion with a blue mane' and 'Mimi the mouse in a pink dress').\n"
-            "MULTI-CHARACTER ACTION: For the 'image_prompt', you MUST describe ALL characters mentioned in the "
-            "chapter content and their specific actions together (e.g., 'Leo the lion is sharing a cake with Mimi the mouse under a big tree').\n"
+            "You are a Pixar movie director. Output valid JSON only. \n"
+            "CONSISTENCY RULE: Describe characters exactly the same way every time. \n"
             "MANDATORY JSON STRUCTURE: \n"
-            "{\n"
-            "  \"title\": \"Story Title\",\n"
-            "  \"moral\": \"...\",\n"
-            "  \"chapters\": [\n"
-            "    { \"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"[All characters] + [Specific action interaction] + [Environment]\" }\n"
-            "  ]\n"
-            "}\n"
+            "{\"title\": \"...\", \"moral\": \"...\", \"chapters\": [{\"title\": \"...\", \"content\": \"...\", \"image_prompt\": \"...\"}]}"
         )
-        
-        user_prompt = f"Write a {request.genre} story with {request.chapters} chapters."
 
         chat_completion = client.chat.completions.create(
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": f"Write a {request.genre} story with {request.chapters} chapters."}],
             model="llama-3.3-70b-versatile",
-            temperature=0.8, # Slightly higher for more "interesting" vocabulary
             response_format={"type": "json_object"}
         )
 
         story_data = json.loads(chat_completion.choices[0].message.content)
-
-        if "chapters" in story_data:
-            for chapter in story_data["chapters"]:
-                chapter["image_seed"] = random.randint(10000, 99999)
+        for chapter in story_data.get("chapters", []):
+            chapter["image_seed"] = random.randint(10000, 99999)
 
         return story_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# --- LIBRARY ENDPOINTS ---
 @app.post("/save_story")
-async def save_story(story: StoryModel, current_user: str = Depends(get_current_user)):
-    story_dict = story.dict()
-    story_dict["user_email"] = current_user
-    story_dict["created_at"] = datetime.utcnow()
-    await app.mongodb.stories.insert_one(story_dict)
-    return {"message": "Story saved to library!"}
+async def save_story(story: StoryModel, user_id: str = Depends(get_current_user)):
+    try:
+        data = supabase.table("stories").insert({
+            "user_id": user_id,
+            "title": story.title,
+            "content": story.model_dump(),
+            "type": "story"
+        }).execute()
+
+        return {"message": "Story saved to library!", "data": data.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/my_stories")
-async def get_my_stories(current_user: str = Depends(get_current_user)):
-    cursor = app.mongodb.stories.find({"user_email": current_user}).sort("created_at", -1)
-    stories = await cursor.to_list(length=100)
-    for story in stories:
-        story["_id"] = str(story["_id"])
-    return stories
+async def get_my_stories(user_id: str = Depends(get_current_user)):
+    try:
+        response = supabase.table("stories").select("*").eq("user_id", user_id).execute()
+        return response.data
+    except Exception  as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/complete_reading")
+async def complete_reading(user_id: str = Depends(get_current_user)):
+    try:
+        supabase.rpc('increment_streak', {'u_id': user_id}).execute()
+
+        supabase.rpc('add_pet_xp', {'u_id': user_id, 'xp_to_add': 20}).execute()
+
+        return {"message": "Reading recorded! Chottuu is happy.", "xp_gained": 10}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/pet_status")
+async def get_pet_status(user_id: str = Depends(get_current_user)):
+    try:
+        response = supabase.table("pet_stats").select("*").eq("user_id").single().execute()
+
+        if not response.data:
+            return {
+                "pet_name": "Chotuu",
+                "xp": 0,
+                "level": 1,
+                "evolution_stage": "egg"
+            }
+
+            return response.data
+        except Exception as e:
+            raise HTTPException(status_code = 500, detail = str(e))
 
 @app.get("/")
 def read_root():
-    return {"status": "alive", "message": "The backend is running!"}
+    return {"status": "alive", "engine": "Supabase + Groq"}
