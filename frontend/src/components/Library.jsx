@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { Calendar } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 function Library() {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem('token');
+  const [error, setError] = useState('');
+  const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+  const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
+  const listUrl = `${functionsBaseUrl}/my-stories`;
   const navigate = useNavigate(); // Hook for navigation
 
   useEffect(() => {
@@ -14,13 +18,30 @@ function Library() {
   }, []);
 
   const fetchLibrary = async () => {
+    if (!functionsBaseUrl) {
+      setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await axios.get('https://kathakalpana-api.onrender.com/my_stories', {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token ?? '';
+      const response = await axios.get(listUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setStories(response.data);
+      const normalized = (response.data ?? []).map((story) => {
+        const content = story.content ?? story;
+        return {
+          ...story,
+          ...content,
+          chapters: content.chapters ?? story.chapters ?? []
+        };
+      });
+      setStories(normalized);
     } catch (error) {
       console.error("Error fetching library:", error);
+      setError('Failed to load library. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -32,6 +53,7 @@ function Library() {
   };
 
   if (loading) return <div style={{textAlign:'center', color:'white', marginTop:'50px'}}>Loading your library...</div>;
+  if (error) return <div style={{textAlign:'center', color:'#ff6b6b', marginTop:'50px'}}>{error}</div>;
 
   return (
     <div className="library-container" style={{padding: '40px', color: 'white'}}>
@@ -43,7 +65,7 @@ function Library() {
         <div className="library-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px'}}>
           {stories.map((story) => (
             <div 
-              key={story._id} 
+              key={story.id ?? story._id} 
               className="story-card" 
               onClick={() => openStory(story)} // <--- CLICK HANDLER ADDED HERE
               style={{
@@ -57,6 +79,13 @@ function Library() {
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
+              {story.chapters?.[0]?.image_url && (
+                <img
+                  src={story.chapters[0].image_url}
+                  alt={`${story.title} cover`}
+                  style={{ width: '100%', borderRadius: '12px', marginBottom: '12px' }}
+                />
+              )}
               <h3 style={{marginTop: 0}}>{story.title}</h3>
               <p style={{fontSize: '0.9em', color: '#aaa'}}><Calendar size={14} /> {new Date(story.created_at).toLocaleDateString()}</p>
               

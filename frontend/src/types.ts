@@ -1,8 +1,10 @@
 export interface Chapter {
   title: string;
   content: string;
-  image_propmpt: string;
-  image_seed: number;
+  image_prompt?: string;
+  image_seed?: number;
+  image_url?: string | null;
+  image_error?: string | null;
 }
 
 export interface Story{
@@ -17,5 +19,5 @@ export interface PetStatus {
   pet_name: string;
   xp: number;
   level: number;
-  evolution_stage: 'egg' | 'hatching' | 'adult';
+  evolution_stage: 'egg' | 'hatchling' | 'adult';
 }

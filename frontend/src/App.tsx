@@ -1,94 +1,136 @@
-import React,{ useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import {Book, LogOut } from 'lucide-react';
+import { Book, LogOut, Sparkles } from 'lucide-react';
+import './App.css';
+import { supabase } from './lib/supabaseClient';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+
 import Login from './components/Login';
 import Library from './components/Library';
 import StoryGenerator from './components/StoryGenerator';
 import StoryReader from './components/StoryReader';
+import PetDashboard from './components/PetDashBoard';
 
 const App: React.FC = () => {
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
-    const handleLogin = (newToken: string) => {
-        localStorage.setItem('token', newToken);
-        setToken(newToken);
+  useEffect(() => {
+    let mounted = true;
+
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (mounted) {
+        setSession(data.session ?? null);
+        setAuthReady(true);
+      }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        setToken(null);
+    initAuth();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, nextSession: Session | null) => {
+      if (mounted) {
+        setSession(nextSession);
+        setAuthReady(true);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.subscription.unsubscribe();
     };
+  }, []);
 
-    const ProtectedRoute = ({ children }: {children: React.ReactNode }) => {
-        if(!token) return <Navigate to = "/login" replace />;
+  const handleLogin = (nextSession: Session | null) => {
+    setSession(nextSession);
+  };
 
-        return<>{children}</>;
-    };
+  const handleLogout = () => {
+    supabase.auth.signOut();
+  };
 
-    return (
-        <Router>
-            <div className="min-height-screen bg-neutral-950 text-neutral-100 font-sans selection:bg-purple-500/30">
-                <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-md bg-neutral-900/60 border-b border-neutral-800">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
-                        Katha Kalpana
-                    </h1>
-                    <div className="flex-items-center gap-6 text-sm font-medium">
-                        <Link to="/" className="hover:text-purple-400 transition-colors">Home</Link>
-                        {token && (
-                            <>
-                                <Link to="/generate" className="hover:text-purple-400 transition-colors">Create</Link>
-                                <Link to="/library" className="hover:text-purple-400 transition-colors">Library</Link>
-                            </>
-                        )}
-                        { token ? (
-                            <button onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-red-900/40 rounded-full border-neutral-700 transition-all">
-                                <LogOut size={16} />Logout
-                            </button>
-                        ): (
-                            <Link to="/login" className="px-5 py-2 bg-purple-600 hover:bg-purple-500 rounded-full transition-all shadow-purple-500/20">
-                                Login
-                            </Link>
-                        )}
-                    </div>
-                </nav>
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!authReady) return null;
+    if (!session) return <Navigate to="/login" replace />;
+    return <>{children}</>;
+  };
 
-                {/*Main Content Area */}
-                <main className="max-w-6xl mx-auto p-6">
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                        <Route path="/generate" element={<ProtectedRoute><StoryGenerator token={token!} /></ProtectedRoute>} />
-                        <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
-                        <Route path="/read" element={<ProtectedRoute><StoryReader /></ProtectedRoute>} />
-                    </Routes>
-                </main>
-            
-            </div>
-             
-        </Router>
-    );
+  return (
+    <Router>
+      <div className="app-container">
+        <nav className="navbar">
+          <h1 className="title">
+            Katha Kalpana
+          </h1>
+          <div className="nav-links">
+            <Link to="/">Home</Link>
+            {session && (
+              <>
+                <Link to="/generate">Create</Link>
+                <Link to="/library">Library</Link>
+                <Link to="/pet">Chotuu</Link>
+              </>
+            )}
+            {session ? (
+              <button
+                onClick={handleLogout} 
+                className="logout-btn"
+              >
+                <LogOut size={16} /> Logout
+              </button>
+            ) : (
+              <Link to="/login">
+                Login
+              </Link>
+            )}
+          </div>
+        </nav>
 
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/generate" element={<ProtectedRoute><StoryGenerator token={session?.access_token ?? ''} /></ProtectedRoute>} />
+            <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+            <Route path="/read" element={<ProtectedRoute><StoryReader /></ProtectedRoute>} />
+            <Route path="/pet" element={<ProtectedRoute><PetDashboard /></ProtectedRoute>} />
+          </Routes>
+        </main>
 
+        <footer className="app-footer">Made with ❤ for little storytellers</footer>
+      </div>
+    </Router>
+  );
 };
 
-//Landing Page Sub-Component
-const HomePage = () => {
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-purple-600 blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            <h1 className="relative text-6xl font-extrabold mb-6 tracking-tight">
-                Where <span className="text-purple-500">Imagination</span> Lives
-            </h1>
-        </div>
-        <p className="text-xl text-neutral-400 mb-10 max-w-2xl">
-            Bring stories to life with AI-powered narration and magical illustrations.
-        </p>
-        <Link to="/generate" className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 rounded-2xl text-lg font-bolde hover:scale-105 transition-all shadow-xl shadow-purple-900/20">
-        Get Started <Book className="group-hover:rotate-12 transition-transform"/>
-        
-        </Link>
-    </div>
-};
+const HomePage = () => (
+  <>
+    <section className="hero-section">
+      <h1>Where Imagination Lives</h1>
+      <p>Bring stories to life with AI-powered narration and magical illustrations.</p>
+      <Link to="/generate" className="cta-button">
+        Get Started <Book size={18} />
+      </Link>
+    </section>
+
+    <section className="features-section">
+      <div className="feature">
+        <Book />
+        <h3>Generate Stories</h3>
+        <p>Create magical chapter-based adventures from any idea.</p>
+      </div>
+      <div className="feature">
+        <Sparkles />
+        <h3>Read & Listen</h3>
+        <p>Enjoy story pages and optional narration for kids.</p>
+      </div>
+      <div className="feature">
+        <LogOut />
+        <h3>Save to Library</h3>
+        <p>Keep your favorites and revisit them anytime.</p>
+      </div>
+    </section>
+  </>
+);
 
 export default App;

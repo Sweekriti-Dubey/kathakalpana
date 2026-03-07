@@ -1,101 +1,51 @@
 # Kathakalpana 📖✨
 
-**Kathakalpana** (Story Imagination) is an interactive web application that uses Artificial Intelligence to generate personalized children's stories complete with illustrations, audio narration, and persistent character consistency.
+Kathakalpana is a Supabase-powered AI storytelling app for kids with auth, story generation, image generation, narration, library, and pet progression.
 
-![Project Status](https://img.shields.io/badge/Status-Live-success)
-![License](https://img.shields.io/badge/License-MIT-blue)
+## Stack
 
-## 🚀 Live Demo
-[https://kathakalpana-wjr2.vercel.app/](#)
+- Frontend: React + Vite
+- Auth/DB/Storage/Functions: Supabase
+- AI text: Groq
+- AI images: Gemini (Nano Banana)
 
-## ✨ Features
+## Supabase Functions
 
-1.📖 AI Story Generation: Creates unique, multi-chapter stories based on any genre (Adventure, Sci-Fi, Fairy Tale, etc.).
+- `generate-story`
+- `save-story`
+- `my-stories`
+- `complete-reading`
+- `pet-status`
 
-2.🎨 Dynamic Illustrations: Automatically generates a consistent main character and creates unique illustrations for every chapter using Pollinations.ai.
+## Frontend Env
 
-3.🔊 Audio Narration: Text-to-speech feature reads the story aloud for children.
+Create `frontend/.env`:
 
-4.📚 Personal Library: Users can save their favorite stories to their personal dashboard (MongoDB).
+```env
+VITE_SUPABASE_FUNCTIONS_URL=https://<project-ref>.supabase.co/functions/v1
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon-key>
+```
 
-5.🔐 Secure Authentication: Full Signup/Login system with JWT Authentication.
+## Supabase Secrets (Edge Functions)
 
-## 🛠️ Tech Stack
+Set in Supabase project secrets:
 
-### **Frontend**
-- **React.js (Vite):** Fast, component-based UI.
-- **CSS3:** Custom styling for a magical, kid-friendly aesthetic.
-- **Axios:** For handling API requests.
-- **Lucide React:** Beautiful, lightweight icons.
+- `GROQ_API_KEY`
+- `GEMINI_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `STORY_IMAGES_BUCKET` (optional, default: `story-images`)
 
-### **Backend**
-- **FastAPI (Python):** High-performance async backend.
-- **MongoDB (Motor):** NoSQL database for storing users and JSON-structured stories.
-- **AI Models:**
-  - *Text:* Llama-3-70b (via Groq Cloud).
-  - *Images:* Stable Diffusion XL (via Hugging Face Inference API).
-- **Authentication:** OAuth2 with Password Bearer & Python-Jose.
+## Local Run
 
-⚙️ Installation & Setup
-
-Follow these steps to run the project locally.
-
-1. Clone the Repository: 
-
-git clone [https://github.com/Sweekriti-Dubey/kathakalpana.git](https://github.com/Sweekriti-Dubey/kathakalpana.git)
-cd kathakalpana
-
--------------------------------------------------------------------------
-2. Backend Setup: 
-
-The backend handles the AI logic and database connections.
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate it (Windows)
-venv\Scripts\activate
-# Activate it (Mac/Linux)
-# source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the server
-uvicorn main:app --reload
-The backend will run at https://kathakalpana-api.onrender.com
-
--------------------------------------------------------------------------
-3. Frontend Setup
-Open a new terminal window for the frontend.
-
-Bash
-
+```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the React app
 npm run dev
--------------------------------------------------------------------------
-The frontend will run at http://localhost:5173
+```
 
-🔑 Environment Variables
-To run this project, you must create a .env file inside the backend folder with the following keys:
+## Storage
 
----Code snippet---
--------------------------------------------------------------------------
-GROQ_API_KEY=your_groq_api_key_here
-MONGO_URL=your_mongodb_connection_string_here
--------------------------------------------------------------------------
-
-📸 Usage Guide
-1. Sign Up/Login: Create a secure account to access the generator.
-2. Create: Enter a story topic (e.g., "A brave puppy in space") and    select the length.
-3. Read & Listen: Enjoy the generated story with images and audio.
-4. Save: Click the "Save to Library" button to keep the story forever.
--------------------------------------------------------------------------
-🤝 Contributing
-Contributions are welcome! If you have ideas for new features (like PDF export or multiple character styles), feel free to fork the repository and submit a pull request.
+Create private bucket `story-images` and run SQL in [supabase/storage_policies.sql](supabase/storage_policies.sql).
+For tables/RPC/RLS alignment with the current app code, run [supabase/schema_patch.sql](supabase/schema_patch.sql) in Supabase SQL Editor.

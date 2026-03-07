@@ -1,13 +1,14 @@
 # Security
+frontend/.env
+supabase/.temp
 backend/.env
-
+tools/supabase/supabase.exe
 # Python Junk
-backend/venv/
 **/__pycache__/
 *.pyc
 
 # Node Junk (Ignore in both folders)
 node_modules/
 frontend/node_modules/
-backend/node_modules/
+tools/node_modules/
 .DS_Store

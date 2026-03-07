@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
 function Login({ onLogin }) {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -14,30 +14,29 @@ function Login({ onLogin }) {
     setError('');
 
   
-    const endpoint = isLoginMode 
-      ? 'https://kathakalpana-api.onrender.com/login' 
-      : 'https://kathakalpana-api.onrender.com/signup';
-
     try {
       if (isLoginMode) {
-      
-        const formData = new FormData();
-        formData.append('username', email);
-        formData.append('password', password);
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
 
-        const response = await axios.post(endpoint, formData);
-        
-        onLogin(response.data.access_token);
+        if (signInError) throw signInError;
+        onLogin(data.session ?? null);
         navigate('/generate'); 
       } else {
-        // SIGNUP: Use JSON
-        await axios.post(endpoint, { email, password });
-        setIsLoginMode(true); 
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password
+        });
+
+        if (signUpError) throw signUpError;
+        setIsLoginMode(true);
         alert('Account created! Please log in.');
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Authentication failed');
+      setError(err?.message || 'Authentication failed');
     }
   };
 
