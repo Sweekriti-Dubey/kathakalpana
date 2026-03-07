@@ -35,7 +35,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const [error, setError] = useState('');
 	const [story, setStory] = useState<GeneratedStory | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
-
+  const [useSampleImages, setUseSampleImages] = useState(true);
 	const generateStory = async () => {
 		if (!functionsBaseUrl) {
 			setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
@@ -48,7 +48,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		try {
 			const res = await axios.post(
 				generateUrl,
-				{ genre, chapters },
+				{ genre, chapters, use_sample_images: useSampleImages },
 				{ headers: { Authorization: `Bearer ${token}` } }
 			);
 			setStory(res.data);
@@ -128,6 +128,17 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 						value={chapters}
 						onChange={(e) => setChapters(Number(e.target.value))}
 					/>
+				</div>
+
+				<div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+					<label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+						<input
+							type="checkbox"
+							checked={!useSampleImages}
+							onChange={(e) => setUseSampleImages(!e.target.checked)}
+						/>
+						Generate real AI images (uses HuggingFace tokens)
+					</label>
 				</div>
 
 				<button onClick={generateStory} disabled={loading || !genre.trim()}>
