@@ -44,11 +44,6 @@ const IMAGE_MODE = (
 ).toLowerCase();
 const SAMPLE_IMAGES_BUCKET = Deno.env.get("SAMPLE_IMAGES_BUCKET") ?? "story-samples";
 const SAMPLE_IMAGES_PREFIX = Deno.env.get("SAMPLE_IMAGES_PREFIX") ?? "cartoon";
-const IMAGE_ALLOWED_EMAILS = (Deno.env.get("IMAGE_ALLOWED_EMAILS") ?? "")
-  .split(",")
-  .map((value) => value.trim().toLowerCase())
-  .filter(Boolean);
-const ADMIN_EMAIL = (Deno.env.get("ADMIN_EMAIL") ?? "").trim().toLowerCase();
 
 const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
 const IMAGE_CONCURRENCY = 3;
@@ -68,6 +63,24 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
     ...init,
     headers: { "Content-Type": "application/json", ...corsHeaders, ...init.headers },
   });
+}
+
+function parseJwtClaims(authorizationHeader: string): Record<string, unknown> | null {
+  const token = authorizationHeader.startsWith("Bearer ")
+    ? authorizationHeader.slice("Bearer ".length).trim()
+    : "";
+
+  if (!token) return null;
+
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized);
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch (_error) {
+    return null;
+  }
 }
 
 
@@ -193,58 +206,12 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "genre and chapters are required." }, { status: 400 });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: {
-        Authorization: req.headers.get("Authorization") ?? "",
-      },
-    },
-  });
+  const authorizationHeader = req.headers.get("Authorization") ?? "";
+  const jwtClaims = parseJwtClaims(authorizationHeader);
+  const userId = typeof jwtClaims?.sub === "string" ? jwtClaims.sub : "";
 
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData?.user) {
+  if (!userId) {
     return jsonResponse({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userEmail = (authData.user.email ?? "").toLowerCase();
-
-  if (!authData.user.email_confirmed_at) {
-    return jsonResponse(
-      {
-        error: "Please verify your email before generating a story.",
-        code: "email_unverified",
-      },
-      { status: 403 },
-    );
-  }
-
-  const isAdmin = Boolean(ADMIN_EMAIL && userEmail && userEmail === ADMIN_EMAIL);
-  let hasApprovedAccess = false;
-
-  if (isAdmin) {
-    hasApprovedAccess = true;
-  } else {
-    const { data: accessRow, error: accessError } = await supabase
-      .from("story_generation_access")
-      .select("status")
-      .eq("user_id", authData.user.id)
-      .maybeSingle();
-
-    if (accessError) {
-      return jsonResponse({ error: `Failed to check access: ${accessError.message}` }, { status: 500 });
-    }
-
-    hasApprovedAccess = accessRow?.status === "approved";
-  }
-
-  if (!hasApprovedAccess) {
-    return jsonResponse(
-      {
-        error: "Access required. Request access and wait for approval before generating stories.",
-        code: "access_required",
-      },
-      { status: 403 },
-    );
   }
 
   // Admin client for storage uploads (bypasses RLS, safe because auth is already verified above)
@@ -316,16 +283,6 @@ Deno.serve(async (req: Request) => {
 
   const useSample = payload.use_sample_images ?? (IMAGE_MODE === "sample");
 
-  if (!useSample) {
-    if (!authData.user.email_confirmed_at) {
-      return jsonResponse({ error: "Email verification is required before generating real images." }, { status: 403 });
-    }
-
-    if (IMAGE_ALLOWED_EMAILS.length > 0 && !IMAGE_ALLOWED_EMAILS.includes(userEmail)) {
-      return jsonResponse({ error: "Your account is not allowed to generate real images." }, { status: 403 });
-    }
-  }
-
   // ── Fast path: sample images → return JSON immediately ──
   if (useSample) {
     const chapters: StoryChapter[] = chapterData.map((ch, i) => ({
@@ -382,7 +339,7 @@ Deno.serve(async (req: Request) => {
           if (!imageBytes) {
             imageError = "No image returned by HuggingFace.";
           } else {
-            const objectPath = `${authData.user.id}/story-${Date.now()}-ch${index}/chapter-${index + 1}.png`;
+            const objectPath = `${userId}/story-${Date.now()}-ch${index}/chapter-${index + 1}.png`;
             const uploadResult = await adminSupabase.storage
               .from(STORY_IMAGES_BUCKET)
               .upload(objectPath, imageBytes, {
