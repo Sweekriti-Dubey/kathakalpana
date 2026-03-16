@@ -16,6 +16,7 @@ Kathakalpana is a Supabase-powered AI storytelling app for kids with auth, story
 - `my-stories`
 - `complete-reading`
 - `pet-status`
+- `request-access`
 
 ## Frontend Env
 
@@ -27,6 +28,16 @@ VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon-key>
 ```
 
+## Vercel Deploy
+
+Set the same three frontend env vars in Vercel Project Settings > Environment Variables for each environment you deploy to.
+
+- `VITE_SUPABASE_FUNCTIONS_URL`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Vercel does not expose browser env vars unless they are prefixed with `VITE_`, and changing them requires a redeploy.
+
 ## Supabase Secrets (Edge Functions)
 
 Set in Supabase project secrets:
@@ -36,6 +47,17 @@ Set in Supabase project secrets:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `STORY_IMAGES_BUCKET` (optional, default: `story-images`)
+
+Optional access-request notifications:
+
+- `ADMIN_EMAIL` (owner email auto-approved)
+- `RESEND_API_KEY`
+- `ACCESS_REQUEST_TO_EMAIL` (your inbox)
+- `ACCESS_REQUEST_FROM_EMAIL` (verified sender in Resend)
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_FROM_NUMBER`
+- `ACCESS_REQUEST_SMS_TO` (your phone)
 
 ## Local Run
 

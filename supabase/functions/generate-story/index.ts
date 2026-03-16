@@ -1,3 +1,4 @@
+/// <reference path="../edge-runtime.d.ts" />
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -10,6 +11,7 @@ type StoryRequest = {
   genre: string;
   chapters: number;
   character_seed?: number;
+  use_sample_images?: boolean;
 };
 
 type StoryChapter = {
@@ -32,11 +34,24 @@ const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 const HUGGINGFACE_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const STORY_IMAGES_BUCKET = Deno.env.get("STORY_IMAGES_BUCKET") ?? "story-images";
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24;
-const SKIP_IMAGE_GENERATION = Deno.env.get("SKIP_IMAGE_GENERATION") === "true";
-const HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0";
-const IMAGE_GEN_DELAY_MS = 2000;
+const LEGACY_SKIP_IMAGE_GENERATION = Deno.env.get("SKIP_IMAGE_GENERATION") === "true";
+const IMAGE_MODE = (
+  Deno.env.get("IMAGE_MODE") ??
+  (LEGACY_SKIP_IMAGE_GENERATION ? "sample" : "huggingface")
+).toLowerCase();
+const SAMPLE_IMAGES_BUCKET = Deno.env.get("SAMPLE_IMAGES_BUCKET") ?? "story-samples";
+const SAMPLE_IMAGES_PREFIX = Deno.env.get("SAMPLE_IMAGES_PREFIX") ?? "cartoon";
+const IMAGE_ALLOWED_EMAILS = (Deno.env.get("IMAGE_ALLOWED_EMAILS") ?? "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+const ADMIN_EMAIL = (Deno.env.get("ADMIN_EMAIL") ?? "").trim().toLowerCase();
+
+const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
+const IMAGE_CONCURRENCY = 3;
 
 const systemPrompt = [
   "You are a Pixar movie director and a children story author.",
@@ -55,44 +70,63 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
   });
 }
 
-const PLACEHOLDER_IMAGES = [
-  "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80",
-  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&q=80",
-  "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800&q=80",
-  "https://images.unsplash.com/photo-1477884213360-7e9d7dcc1e48?w=800&q=80",
-  "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800&q=80",
-];
+
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getSampleImageUrl(chapterIndex: number): string {
+  
+  const chapterNumber = ((chapterIndex % 10) + 1);
+  const objectPath = `${SAMPLE_IMAGES_PREFIX}/chapter-${chapterNumber}.png`;
+  return `${SUPABASE_URL}/storage/v1/object/public/${SAMPLE_IMAGES_BUCKET}/${objectPath}`;
+}
+
 async function generateImageHuggingFace(
   prompt: string,
   apiKey: string,
+  seed: number,
   retries = 3,
 ): Promise<Uint8Array | null> {
+  const url = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
+  const keyPreview = apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : "MISSING";
+  console.log(`[HF] URL: ${url}`);
+  console.log(`[HF] Key preview: ${keyPreview}`);
+  console.log(`[HF] Key length: ${apiKey?.length ?? 0}`);
+
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${HF_MODEL}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ inputs: prompt }),
+      console.log(`[HF] Attempt ${attempt + 1}/${retries}`);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            seed,
+            num_inference_steps: 4,
+          },
+        }),
+      });
+
+      console.log(`[HF] Response status: ${response.status}`);
+      console.log(`[HF] Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
 
       if (response.status === 503) {
+        const body = await response.text();
+        console.log(`[HF] 503 body: ${body}`);
         const delay = Math.min(5000 * (attempt + 1), 15000);
         await sleep(delay);
         continue;
       }
 
       if (response.status === 429) {
+        const body = await response.text();
+        console.log(`[HF] 429 body: ${body}`);
         const delay = Math.min(10000 * (attempt + 1), 30000);
         await sleep(delay);
         continue;
@@ -100,12 +134,15 @@ async function generateImageHuggingFace(
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[HF] Error body: ${errorText}`);
         throw new Error(`HuggingFace API error: ${response.status} ${errorText}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
+      console.log(`[HF] Success! Image size: ${arrayBuffer.byteLength} bytes`);
       return new Uint8Array(arrayBuffer);
     } catch (error) {
+      console.error(`[HF] Attempt ${attempt + 1} error:`, error);
       if (attempt === retries - 1) {
         throw error;
       }
@@ -131,9 +168,16 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  if (!SKIP_IMAGE_GENERATION && !HUGGINGFACE_API_KEY) {
+  if (!["sample", "huggingface"].includes(IMAGE_MODE)) {
     return jsonResponse(
-      { error: "Missing HUGGINGFACE_API_KEY. Set SKIP_IMAGE_GENERATION=true for testing without images." },
+      { error: "Invalid IMAGE_MODE. Use 'sample' or 'huggingface'." },
+      { status: 500 },
+    );
+  }
+
+  if (IMAGE_MODE === "huggingface" && !HUGGINGFACE_API_KEY) {
+    return jsonResponse(
+      { error: "Missing HUGGINGFACE_API_KEY. Use IMAGE_MODE=sample for testing without token usage." },
       { status: 500 },
     );
   }
@@ -161,6 +205,50 @@ Deno.serve(async (req: Request) => {
   if (authError || !authData?.user) {
     return jsonResponse({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const userEmail = (authData.user.email ?? "").toLowerCase();
+
+  if (!authData.user.email_confirmed_at) {
+    return jsonResponse(
+      {
+        error: "Please verify your email before generating a story.",
+        code: "email_unverified",
+      },
+      { status: 403 },
+    );
+  }
+
+  const isAdmin = Boolean(ADMIN_EMAIL && userEmail && userEmail === ADMIN_EMAIL);
+  let hasApprovedAccess = false;
+
+  if (isAdmin) {
+    hasApprovedAccess = true;
+  } else {
+    const { data: accessRow, error: accessError } = await supabase
+      .from("story_generation_access")
+      .select("status")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+
+    if (accessError) {
+      return jsonResponse({ error: `Failed to check access: ${accessError.message}` }, { status: 500 });
+    }
+
+    hasApprovedAccess = accessRow?.status === "approved";
+  }
+
+  if (!hasApprovedAccess) {
+    return jsonResponse(
+      {
+        error: "Access required. Request access and wait for approval before generating stories.",
+        code: "access_required",
+      },
+      { status: 403 },
+    );
+  }
+
+  // Admin client for storage uploads (bypasses RLS, safe because auth is already verified above)
+  const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const characterSeed = payload.character_seed ?? Math.floor(Math.random() * 90000) + 10000;
 
@@ -203,77 +291,148 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Groq response missing story fields" }, { status: 502 });
   }
 
-  const chapters: StoryChapter[] = [];
-
-  for (let i = 0; i < story.chapters.length; i += 1) {
-    const chapter = story.chapters[i] ?? { title: "", content: "" };
-    const basePrompt = chapter.image_prompt ?? `${chapter.title}. ${chapter.content}`;
+  // Prepare all chapter data with image prompts up-front
+  const chapterData = story.chapters.map((chapter, i) => {
+    const ch = chapter ?? { title: "", content: "", image_prompt: "" };
+    const basePrompt = ch.image_prompt ?? `${ch.title}. ${ch.content}`;
     const imagePrompt = [
-      "Pixar-style, child-friendly, colorful illustration.",
-      "Highly detailed, vibrant colors, magical atmosphere.",
-      "Keep the main character identical across all images.",
+      "Children's storybook cartoon illustration, kid-safe, bright and joyful.",
+      "Same protagonist identity in every chapter: same fur color, same eye color, same outfit, same art style.",
+      "Soft lighting, rounded shapes, expressive faces, clean background composition.",
+      "No horror, no violence, no realistic style.",
+      "IMPORTANT: Do not include any text, letters, words, numbers, captions, watermarks, signatures, or written characters anywhere in the image.",
+      `Character consistency seed: ${characterSeed}.`,
       basePrompt.slice(0, 200),
     ].join(" ");
+    return {
+      title: ch.title,
+      content: ch.content,
+      image_prompt: ch.image_prompt ?? basePrompt,
+      image_seed: characterSeed,
+      imagePrompt,
+      chapterSeed: characterSeed + i,
+    };
+  });
 
-    let imageUrl: string | null = null;
-    let imageError: string | null = null;
+  const useSample = payload.use_sample_images ?? (IMAGE_MODE === "sample");
 
-    if (SKIP_IMAGE_GENERATION) {
-      imageUrl = PLACEHOLDER_IMAGES[i % PLACEHOLDER_IMAGES.length];
-    } else {
-      try {
-        if (i > 0) {
-          await sleep(IMAGE_GEN_DELAY_MS);
-        }
-
-        const imageBytes = await generateImageHuggingFace(imagePrompt, HUGGINGFACE_API_KEY!);
-        if (!imageBytes) {
-          imageError = "No image returned by HuggingFace.";
-        } else {
-          const objectPath = `${authData.user.id}/story-${Date.now()}/chapter-${i + 1}.png`;
-
-          const uploadResult = await supabase.storage
-            .from(STORY_IMAGES_BUCKET)
-            .upload(objectPath, imageBytes, {
-              contentType: "image/png",
-              upsert: true,
-            });
-
-          if (uploadResult.error) {
-            imageError = uploadResult.error.message;
-          } else {
-            const signed = await supabase.storage
-              .from(STORY_IMAGES_BUCKET)
-              .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
-
-            if (signed.error || !signed.data?.signedUrl) {
-              imageError = signed.error?.message ?? "Failed to create signed URL.";
-            } else {
-              imageUrl = signed.data.signedUrl;
-            }
-          }
-        }
-      } catch (error) {
-        imageError = error instanceof Error ? error.message : "Image generation failed.";
-      }
+  if (!useSample) {
+    if (!authData.user.email_confirmed_at) {
+      return jsonResponse({ error: "Email verification is required before generating real images." }, { status: 403 });
     }
 
-    chapters.push({
-      title: chapter.title,
-      content: chapter.content,
-      image_prompt: chapter.image_prompt ?? basePrompt,
-      image_seed: characterSeed,
-      image_url: imageUrl,
-      image_error: imageError,
+    if (IMAGE_ALLOWED_EMAILS.length > 0 && !IMAGE_ALLOWED_EMAILS.includes(userEmail)) {
+      return jsonResponse({ error: "Your account is not allowed to generate real images." }, { status: 403 });
+    }
+  }
+
+  // ── Fast path: sample images → return JSON immediately ──
+  if (useSample) {
+    const chapters: StoryChapter[] = chapterData.map((ch, i) => ({
+      title: ch.title,
+      content: ch.content,
+      image_prompt: ch.image_prompt,
+      image_seed: ch.image_seed,
+      image_url: getSampleImageUrl(i),
+      image_error: null,
+    }));
+    return jsonResponse({
+      title: story.title,
+      moral: story.moral,
+      chapters,
+      character_seed: characterSeed,
     });
   }
 
-  const response: StoryResponse = {
-    title: story.title,
-    moral: story.moral,
-    chapters,
-    character_seed: characterSeed,
-  };
+  // ── Streaming path: text first, then parallel image generation ──
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      function send(event: Record<string, unknown>) {
+        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+      }
 
-  return jsonResponse(response, { status: 200 });
+      // 1. Send story text immediately (no images yet)
+      send({
+        type: "story_text",
+        title: story.title,
+        moral: story.moral,
+        chapters: chapterData.map((ch) => ({
+          title: ch.title,
+          content: ch.content,
+          image_prompt: ch.image_prompt,
+          image_seed: ch.image_seed,
+          image_url: null,
+          image_error: null,
+        })),
+        character_seed: characterSeed,
+      });
+
+      // 2. Generate images with bounded concurrency
+      async function processChapterImage(index: number) {
+        const ch = chapterData[index];
+        let imageUrl: string | null = null;
+        let imageError: string | null = null;
+        try {
+          const imageBytes = await generateImageHuggingFace(
+            ch.imagePrompt,
+            HUGGINGFACE_API_KEY!,
+            ch.chapterSeed,
+          );
+          if (!imageBytes) {
+            imageError = "No image returned by HuggingFace.";
+          } else {
+            const objectPath = `${authData.user.id}/story-${Date.now()}-ch${index}/chapter-${index + 1}.png`;
+            const uploadResult = await adminSupabase.storage
+              .from(STORY_IMAGES_BUCKET)
+              .upload(objectPath, imageBytes, {
+                contentType: "image/png",
+                upsert: true,
+              });
+            if (uploadResult.error) {
+              imageError = uploadResult.error.message;
+            } else {
+              const signed = await adminSupabase.storage
+                .from(STORY_IMAGES_BUCKET)
+                .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
+              if (signed.error || !signed.data?.signedUrl) {
+                imageError = signed.error?.message ?? "Failed to create signed URL.";
+              } else {
+                imageUrl = signed.data.signedUrl;
+              }
+            }
+          }
+        } catch (error) {
+          imageError = error instanceof Error ? error.message : "Image generation failed.";
+        }
+        send({ type: "chapter_image", index, image_url: imageUrl, image_error: imageError });
+      }
+
+      // Worker pool: each worker grabs the next unprocessed chapter
+      let nextIdx = 0;
+      async function worker() {
+        while (nextIdx < chapterData.length) {
+          const idx = nextIdx++;
+          await processChapterImage(idx);
+        }
+      }
+      const workers = Array.from(
+        { length: Math.min(IMAGE_CONCURRENCY, chapterData.length) },
+        () => worker(),
+      );
+      await Promise.all(workers);
+
+      send({ type: "done" });
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      ...corsHeaders,
+      "Cache-Control": "no-cache",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 });
