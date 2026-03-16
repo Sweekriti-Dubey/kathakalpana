@@ -28,11 +28,15 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
 	const generateUrl = `${functionsBaseUrl}/generate-story`;
 	const saveUrl = `${functionsBaseUrl}/save-story`;
+	const requestAccessUrl = `${functionsBaseUrl}/request-access`;
 	const [genre, setGenre] = useState('A brave puppy in space');
 	const [chapters, setChapters] = useState(3);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState('');
+	const [accessRequired, setAccessRequired] = useState(false);
+	const [requestStatus, setRequestStatus] = useState('');
+	const [requestingAccess, setRequestingAccess] = useState(false);
 	const [story, setStory] = useState<GeneratedStory | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [useSampleImages, setUseSampleImages] = useState(true);
@@ -45,6 +49,8 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 		setLoading(true);
 		setError('');
+		setRequestStatus('');
+		setAccessRequired(false);
 		setStory(null);
 		setImageProgress(null);
 		try {
@@ -59,6 +65,9 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 			if (!res.ok) {
 				const errBody = await res.json().catch(() => ({}));
+				if (res.status === 403 && errBody?.code === 'access_required') {
+					setAccessRequired(true);
+				}
 				throw new Error(errBody.error || `Request failed: ${res.status}`);
 			}
 
@@ -109,6 +118,37 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		} finally {
 			setLoading(false);
 			setImageProgress(null);
+		}
+	};
+
+	const requestAccess = async () => {
+		if (!functionsBaseUrl) {
+			setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
+			return;
+		}
+
+		setRequestingAccess(true);
+		setRequestStatus('');
+		try {
+			const res = await fetch(requestAccessUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({}),
+			});
+
+			const body = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				throw new Error(body.error || `Request failed: ${res.status}`);
+			}
+
+			setRequestStatus('Access request sent. Please wait for approval.');
+		} catch (err) {
+			setRequestStatus(err instanceof Error ? err.message : 'Failed to send access request.');
+		} finally {
+			setRequestingAccess(false);
 		}
 	};
 
@@ -199,6 +239,15 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 			</div>
 
 			{error && <p style={{ color: '#ff6b6b', marginTop: '16px' }}>{error}</p>}
+
+			{accessRequired && (
+				<div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+					<button type="button" onClick={requestAccess} disabled={requestingAccess}>
+						{requestingAccess ? 'Sending request...' : 'Request Access'}
+					</button>
+					{requestStatus && <p style={{ color: '#9ecbff' }}>{requestStatus}</p>}
+				</div>
+			)}
 
 			{imageProgress && (
 				<div style={{ marginTop: '16px', textAlign: 'center' }}>
