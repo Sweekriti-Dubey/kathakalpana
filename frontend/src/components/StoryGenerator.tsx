@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Play, Square, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { requireSupabaseClient } from '../lib/supabaseClient';
 
 interface StoryGeneratorProps {
 	token: string;
@@ -24,6 +25,7 @@ interface GeneratedStory {
 
 const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const navigate = useNavigate();
+	const supabase = requireSupabaseClient();
 	const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string | undefined;
 	const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
 	const generateUrl = `${functionsBaseUrl}/generate-story`;
@@ -41,6 +43,14 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [useSampleImages, setUseSampleImages] = useState(true);
 	const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null);
+
+	const getAccessToken = async () => {
+		const fallback = token?.trim();
+		const { data, error } = await supabase.auth.getSession();
+		if (error) throw error;
+		return data.session?.access_token ?? fallback ?? '';
+	};
+
 	const generateStory = async () => {
 		if (!functionsBaseUrl) {
 			setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
@@ -54,11 +64,16 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		setStory(null);
 		setImageProgress(null);
 		try {
+			const accessToken = await getAccessToken();
+			if (!accessToken) {
+				throw new Error('Your session expired. Please log in again.');
+			}
+
 			const res = await fetch(generateUrl, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${accessToken}`,
 				},
 				body: JSON.stringify({ genre, chapters, use_sample_images: useSampleImages }),
 			});
@@ -130,11 +145,16 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		setRequestingAccess(true);
 		setRequestStatus('');
 		try {
+			const accessToken = await getAccessToken();
+			if (!accessToken) {
+				throw new Error('Your session expired. Please log in again.');
+			}
+
 			const res = await fetch(requestAccessUrl, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${accessToken}`,
 				},
 				body: JSON.stringify({}),
 			});
@@ -162,8 +182,13 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		setSaving(true);
 		setError('');
 		try {
+			const accessToken = await getAccessToken();
+			if (!accessToken) {
+				throw new Error('Your session expired. Please log in again.');
+			}
+
 			await axios.post(saveUrl, story, {
-				headers: { Authorization: `Bearer ${token}` }
+				headers: { Authorization: `Bearer ${accessToken}` }
 			});
 			alert('Story saved to your library!');
 			navigate('/library');
