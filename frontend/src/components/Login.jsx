@@ -17,15 +17,30 @@ function Login({ onLogin }) {
   const client = useMemo(() => requireSupabaseClient(), []);
 
   useEffect(() => {
-    const fromQuery = new URLSearchParams(window.location.search).get('mode');
-    const fromHash = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type');
+    const query = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const fromQueryMode = query.get('mode');
+    const fromQueryType = query.get('type');
+    const fromHashType = hash.get('type');
 
-    if (fromQuery === 'reset' || fromHash === 'recovery') {
+    if (fromQueryMode === 'reset' || fromQueryType === 'recovery' || fromHashType === 'recovery') {
       setView('reset');
       setSuccess('You can now set a new password.');
       setError('');
     }
-  }, []);
+
+    const { data: authListener } = client.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setView('reset');
+        setSuccess('Recovery link verified. Set your new password below.');
+        setError('');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [client]);
 
   const validatePassword = (value) => {
     if (value.length < 6) return 'Password must be at least 6 characters long.';
