@@ -45,8 +45,8 @@ const IMAGE_MODE = (
 const SAMPLE_IMAGES_BUCKET = Deno.env.get("SAMPLE_IMAGES_BUCKET") ?? "story-samples";
 const SAMPLE_IMAGES_PREFIX = Deno.env.get("SAMPLE_IMAGES_PREFIX") ?? "cartoon";
 
-const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
-const IMAGE_CONCURRENCY = 3;
+const HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0";
+const IMAGE_GEN_DELAY_MS = 2000;
 
 const systemPrompt = [
   "You are a Pixar movie director and a children story author.",
@@ -65,21 +65,21 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
   });
 }
 
-function parseJwtClaims(authorizationHeader: string): Record<string, unknown> | null {
+function parseUserIdFromAuthorizationHeader(authorizationHeader: string): string {
   const token = authorizationHeader.startsWith("Bearer ")
     ? authorizationHeader.slice("Bearer ".length).trim()
     : "";
 
-  if (!token) return null;
+  if (!token) return "public";
 
   try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(normalized);
-    return JSON.parse(json) as Record<string, unknown>;
+    const payload = token.split(".")[1];
+    if (!payload) return "public";
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(normalized)) as { sub?: string };
+    return decoded.sub ?? "public";
   } catch (_error) {
-    return null;
+    return "public";
   }
 }
 
@@ -102,44 +102,37 @@ async function generateImageHuggingFace(
   seed: number,
   retries = 3,
 ): Promise<Uint8Array | null> {
-  const url = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
-  const keyPreview = apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : "MISSING";
-  console.log(`[HF] URL: ${url}`);
-  console.log(`[HF] Key preview: ${keyPreview}`);
-  console.log(`[HF] Key length: ${apiKey?.length ?? 0}`);
+  const hfUrl = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      console.log(`[HF] Attempt ${attempt + 1}/${retries}`);
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            seed,
-            num_inference_steps: 4,
+      const response = await fetch(
+        hfUrl,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
           },
-        }),
-      });
-
-      console.log(`[HF] Response status: ${response.status}`);
-      console.log(`[HF] Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              seed,
+              guidance_scale: 7.5,
+              num_inference_steps: 30,
+              negative_prompt: "scary, horror, gore, realistic violence, disturbing, dark"
+            },
+          }),
+        },
+      );
 
       if (response.status === 503) {
-        const body = await response.text();
-        console.log(`[HF] 503 body: ${body}`);
         const delay = Math.min(5000 * (attempt + 1), 15000);
         await sleep(delay);
         continue;
       }
 
       if (response.status === 429) {
-        const body = await response.text();
-        console.log(`[HF] 429 body: ${body}`);
         const delay = Math.min(10000 * (attempt + 1), 30000);
         await sleep(delay);
         continue;
@@ -147,15 +140,12 @@ async function generateImageHuggingFace(
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[HF] Error body: ${errorText}`);
         throw new Error(`HuggingFace API error: ${response.status} ${errorText}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      console.log(`[HF] Success! Image size: ${arrayBuffer.byteLength} bytes`);
       return new Uint8Array(arrayBuffer);
     } catch (error) {
-      console.error(`[HF] Attempt ${attempt + 1} error:`, error);
       if (attempt === retries - 1) {
         throw error;
       }
@@ -206,16 +196,10 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "genre and chapters are required." }, { status: 400 });
   }
 
-  const authorizationHeader = req.headers.get("Authorization") ?? "";
-  const jwtClaims = parseJwtClaims(authorizationHeader);
-  const userId = typeof jwtClaims?.sub === "string" ? jwtClaims.sub : "";
+  const userId = parseUserIdFromAuthorizationHeader(req.headers.get("Authorization") ?? "");
 
-  if (!userId) {
-    return jsonResponse({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Admin client for storage uploads (bypasses RLS, safe because auth is already verified above)
-  const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
+  // Admin client is used for storage operations so generation does not depend on caller auth state.
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const characterSeed = payload.character_seed ?? Math.floor(Math.random() * 90000) + 10000;
 
@@ -258,138 +242,81 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Groq response missing story fields" }, { status: 502 });
   }
 
-  // Prepare all chapter data with image prompts up-front
-  const chapterData = story.chapters.map((chapter, i) => {
-    const ch = chapter ?? { title: "", content: "", image_prompt: "" };
-    const basePrompt = ch.image_prompt ?? `${ch.title}. ${ch.content}`;
+  const chapters: StoryChapter[] = [];
+
+  for (let i = 0; i < story.chapters.length; i += 1) {
+    const chapter = story.chapters[i] ?? { title: "", content: "" };
+    const basePrompt = chapter.image_prompt ?? `${chapter.title}. ${chapter.content}`;
     const imagePrompt = [
       "Children's storybook cartoon illustration, kid-safe, bright and joyful.",
       "Same protagonist identity in every chapter: same fur color, same eye color, same outfit, same art style.",
       "Soft lighting, rounded shapes, expressive faces, clean background composition.",
       "No horror, no violence, no realistic style.",
-      "IMPORTANT: Do not include any text, letters, words, numbers, captions, watermarks, signatures, or written characters anywhere in the image.",
       `Character consistency seed: ${characterSeed}.`,
-      basePrompt.slice(0, 200),
+      basePrompt.slice(0, 240),
     ].join(" ");
-    return {
-      title: ch.title,
-      content: ch.content,
-      image_prompt: ch.image_prompt ?? basePrompt,
+
+    let imageUrl: string | null = null;
+    let imageError: string | null = null;
+
+    const useSample = payload.use_sample_images ?? (IMAGE_MODE === "sample");
+    if (useSample) {
+      imageUrl = getSampleImageUrl(i);
+    } else {
+      try {
+        if (i > 0) {
+          await sleep(IMAGE_GEN_DELAY_MS);
+        }
+
+        const chapterSeed = characterSeed + i;
+        const imageBytes = await generateImageHuggingFace(imagePrompt, HUGGINGFACE_API_KEY!, chapterSeed);
+        if (!imageBytes) {
+          imageError = "No image returned by HuggingFace.";
+        } else {
+          const objectPath = `${userId}/story-${Date.now()}/chapter-${i + 1}.png`;
+
+          const uploadResult = await supabase.storage
+            .from(STORY_IMAGES_BUCKET)
+            .upload(objectPath, imageBytes, {
+              contentType: "image/png",
+              upsert: true,
+            });
+
+          if (uploadResult.error) {
+            imageError = uploadResult.error.message;
+          } else {
+            const signed = await supabase.storage
+              .from(STORY_IMAGES_BUCKET)
+              .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
+
+            if (signed.error || !signed.data?.signedUrl) {
+              imageError = signed.error?.message ?? "Failed to create signed URL.";
+            } else {
+              imageUrl = signed.data.signedUrl;
+            }
+          }
+        }
+      } catch (error) {
+        imageError = error instanceof Error ? error.message : "Image generation failed.";
+      }
+    }
+
+    chapters.push({
+      title: chapter.title,
+      content: chapter.content,
+      image_prompt: chapter.image_prompt ?? basePrompt,
       image_seed: characterSeed,
-      imagePrompt,
-      chapterSeed: characterSeed + i,
-    };
-  });
-
-  const useSample = payload.use_sample_images ?? (IMAGE_MODE === "sample");
-
-  // ── Fast path: sample images → return JSON immediately ──
-  if (useSample) {
-    const chapters: StoryChapter[] = chapterData.map((ch, i) => ({
-      title: ch.title,
-      content: ch.content,
-      image_prompt: ch.image_prompt,
-      image_seed: ch.image_seed,
-      image_url: getSampleImageUrl(i),
-      image_error: null,
-    }));
-    return jsonResponse({
-      title: story.title,
-      moral: story.moral,
-      chapters,
-      character_seed: characterSeed,
+      image_url: imageUrl,
+      image_error: imageError,
     });
   }
 
-  // ── Streaming path: text first, then parallel image generation ──
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      function send(event: Record<string, unknown>) {
-        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
-      }
+  const response: StoryResponse = {
+    title: story.title,
+    moral: story.moral,
+    chapters,
+    character_seed: characterSeed,
+  };
 
-      // 1. Send story text immediately (no images yet)
-      send({
-        type: "story_text",
-        title: story.title,
-        moral: story.moral,
-        chapters: chapterData.map((ch) => ({
-          title: ch.title,
-          content: ch.content,
-          image_prompt: ch.image_prompt,
-          image_seed: ch.image_seed,
-          image_url: null,
-          image_error: null,
-        })),
-        character_seed: characterSeed,
-      });
-
-      // 2. Generate images with bounded concurrency
-      async function processChapterImage(index: number) {
-        const ch = chapterData[index];
-        let imageUrl: string | null = null;
-        let imageError: string | null = null;
-        try {
-          const imageBytes = await generateImageHuggingFace(
-            ch.imagePrompt,
-            HUGGINGFACE_API_KEY!,
-            ch.chapterSeed,
-          );
-          if (!imageBytes) {
-            imageError = "No image returned by HuggingFace.";
-          } else {
-            const objectPath = `${userId}/story-${Date.now()}-ch${index}/chapter-${index + 1}.png`;
-            const uploadResult = await adminSupabase.storage
-              .from(STORY_IMAGES_BUCKET)
-              .upload(objectPath, imageBytes, {
-                contentType: "image/png",
-                upsert: true,
-              });
-            if (uploadResult.error) {
-              imageError = uploadResult.error.message;
-            } else {
-              const signed = await adminSupabase.storage
-                .from(STORY_IMAGES_BUCKET)
-                .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
-              if (signed.error || !signed.data?.signedUrl) {
-                imageError = signed.error?.message ?? "Failed to create signed URL.";
-              } else {
-                imageUrl = signed.data.signedUrl;
-              }
-            }
-          }
-        } catch (error) {
-          imageError = error instanceof Error ? error.message : "Image generation failed.";
-        }
-        send({ type: "chapter_image", index, image_url: imageUrl, image_error: imageError });
-      }
-
-      // Worker pool: each worker grabs the next unprocessed chapter
-      let nextIdx = 0;
-      async function worker() {
-        while (nextIdx < chapterData.length) {
-          const idx = nextIdx++;
-          await processChapterImage(idx);
-        }
-      }
-      const workers = Array.from(
-        { length: Math.min(IMAGE_CONCURRENCY, chapterData.length) },
-        () => worker(),
-      );
-      await Promise.all(workers);
-
-      send({ type: "done" });
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "application/x-ndjson",
-      ...corsHeaders,
-      "Cache-Control": "no-cache",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  return jsonResponse(response, { status: 200 });
 });

@@ -1,19 +1,16 @@
 project_id = "xmooywgvrnfbtwkecwfo"
 
 [functions.generate-story]
-verify_jwt = true
+verify_jwt = false
 
 [functions.save-story]
-verify_jwt = true
+verify_jwt = false
 
 [functions.my-stories]
-verify_jwt = true
+verify_jwt = false
 
 [functions.complete-reading]
-verify_jwt = true
+verify_jwt = false
 
 [functions.pet-status]
-verify_jwt = true
-
-[functions.request-access]
-verify_jwt = true
+verify_jwt = false

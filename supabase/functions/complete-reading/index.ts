@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const XP_PER_COMPLETION = 20;
 
 function extractBearerToken(authorizationHeader: string | null): string | null {
@@ -21,6 +22,19 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
     ...init,
     headers: { "Content-Type": "application/json", ...corsHeaders, ...init.headers },
   });
+}
+
+function parseUserIdFromAccessToken(accessToken: string): string | null {
+  try {
+    const payload = accessToken.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized);
+    const claims = JSON.parse(json) as { sub?: string };
+    return claims.sub ?? null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 function formatDate(value: Date) {
@@ -51,18 +65,12 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Missing or invalid Authorization header." }, { status: 401 });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  });
-
-  const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
-  if (authError || !authData?.user) {
+  const userId = parseUserIdFromAccessToken(accessToken);
+  if (!userId) {
     return jsonResponse({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = authData.user.id;
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const today = new Date();
   const todayStr = formatDate(today);

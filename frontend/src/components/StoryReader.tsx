@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ChevronRight, ChevronLeft, CheckCircle, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CheckCircle, Sparkles, Play, Square, Save } from 'lucide-react';
 import { PetStatus, Story } from '../types';
-import { supabase } from '../lib/supabaseClient';
+import { requireSupabaseClient } from '../lib/supabaseClient';
 
 const StoryReader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const supabase = requireSupabaseClient();
   const story = location.state?.story as Story;
   const [currentPage, setCurrentPage] = useState(0);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev'>('next');
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [petGrowth, setPetGrowth] = useState<PetStatus | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
   const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
   const completeUrl = `${functionsBaseUrl}/complete-reading`;
   const petStatusUrl = `${functionsBaseUrl}/pet-status`;
+  const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? '';
 
   if (!story) {
     navigate('/library');
@@ -40,6 +45,74 @@ const StoryReader: React.FC = () => {
     }
   };
 
+  const getAccessToken = async () => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+
+    let token = sessionData.session?.access_token ?? '';
+    const exp = token
+      ? JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp as number | undefined
+      : undefined;
+    const now = Math.floor(Date.now() / 1000);
+
+    if (exp && exp - now < 60) {
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
+      token = refreshed.session?.access_token ?? token;
+    }
+
+    if (!token) throw new Error('Session expired. Please log in again.');
+    return token;
+  };
+
+  const toggleNarration = () => {
+    const chapter = story.chapters[currentPage];
+    if (!chapter) return;
+
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
+
+    const text = `${chapter.title}. ${chapter.content}`;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.05;
+    utterance.onend = () => setIsPlaying(false);
+    setIsPlaying(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const saveStory = async () => {
+    if (!functionsBaseUrl) {
+      setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const token = await getAccessToken();
+      const saveUrl = `${functionsBaseUrl}/save-story`;
+      await axios.post(saveUrl, story, {
+        headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey }
+      });
+      setSaved(true);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const backendMessage =
+          (typeof err.response?.data?.error === 'string' && err.response.data.error) ||
+          err.message;
+        setError(`Failed to save story: ${backendMessage}`);
+      } else {
+        setError('Failed to save story. Please try again.');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleFinish = async () => {
     if (!functionsBaseUrl) {
       setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
@@ -49,16 +122,16 @@ const StoryReader: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token ?? '';
+      const token = await getAccessToken();
+
       await axios.post(
         completeUrl, 
         {}, 
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey } }
       );
 
       const petRes = await axios.get(petStatusUrl, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey }
       });
 
       setPetGrowth(petRes.data);
@@ -78,7 +151,7 @@ const StoryReader: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-5xl mx-auto animate-in fade-in duration-700" style={{ height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column', gap: '10px', overflow: 'hidden' }}>
       
       {/* Progress Bar Container */}
       <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
@@ -88,16 +161,38 @@ const StoryReader: React.FC = () => {
         />
       </div>
 
+      <div className="flex items-center justify-end gap-2" style={{ flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={toggleNarration}
+          className={`audio-btn ${isPlaying ? 'playing' : ''}`}
+          style={{ marginTop: 0, minWidth: 'auto', padding: '10px 16px' }}
+        >
+          {isPlaying ? <Square size={16} /> : <Play size={16} />}
+          {isPlaying ? 'Stop Audio' : 'Play Audio'}
+        </button>
+        <button
+          type="button"
+          onClick={saveStory}
+          disabled={saving || saved}
+          style={{ marginTop: 0, minWidth: 'auto', padding: '10px 16px' }}
+        >
+          <Save size={16} style={{ marginRight: 8 }} />
+          {saved ? 'Saved' : saving ? 'Saving...' : 'Save to Library'}
+        </button>
+      </div>
+
       {/* Flip Book Chapter Card */}
-      <div className="relative" style={{ perspective: '1600px' }}>
+      <div className="relative" style={{ perspective: '1600px', flex: 1, minHeight: 0 }}>
         <div className="absolute inset-y-4 -left-1 w-6 rounded-l-2xl bg-black/30 blur-sm" />
         <div className="absolute inset-y-4 -right-1 w-6 rounded-r-2xl bg-black/30 blur-sm" />
 
         <div
           key={currentPage}
-          className={`bg-neutral-900/50 border border-neutral-800 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-sm transition-all duration-500 ease-out animate-in ${flipDirection === 'next' ? 'fade-in slide-in-from-right-4' : 'fade-in slide-in-from-left-4'}`}
+          className={`bg-neutral-900/50 border border-neutral-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-sm transition-all duration-500 ease-out animate-in ${flipDirection === 'next' ? 'fade-in slide-in-from-right-4' : 'fade-in slide-in-from-left-4'}`}
+          style={{ height: '100%', overflow: 'auto' }}
         >
-          <div className="space-y-6">
+          <div className="space-y-4">
             <span className="text-purple-400 font-bold tracking-widest uppercase text-sm">
               Chapter {currentPage + 1}
             </span>
@@ -106,12 +201,13 @@ const StoryReader: React.FC = () => {
                 src={story.chapters[currentPage].image_url}
                 alt={`${story.chapters[currentPage].title} illustration`}
                 className="w-full rounded-2xl border border-neutral-800"
+                style={{ maxHeight: '36vh', objectFit: 'contain' }}
               />
             )}
-            <h2 className="text-4xl font-extrabold text-white leading-tight">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight">
               {story.chapters[currentPage].title}
             </h2>
-            <p className="text-lg md:text-xl text-neutral-300 leading-relaxed font-light first-letter:text-5xl first-letter:font-bold first-letter:mr-3 first-letter:float-left first-letter:text-purple-500">
+            <p className="text-base md:text-lg text-neutral-300 leading-relaxed font-light">
               {story.chapters[currentPage].content}
             </p>
           </div>
@@ -119,7 +215,7 @@ const StoryReader: React.FC = () => {
       </div>
 
       {/* Navigation Controls */}
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between" style={{ background: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(8px)', padding: '8px 0 10px', zIndex: 5 }}>
         <button 
           disabled={currentPage === 0} 
           onClick={() => changePage('prev')}

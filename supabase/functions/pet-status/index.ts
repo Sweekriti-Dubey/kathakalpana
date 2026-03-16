@@ -8,12 +8,33 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
     headers: { "Content-Type": "application/json", ...corsHeaders, ...init.headers },
   });
+}
+
+function parseUserIdFromAuthorizationHeader(authorizationHeader: string | null): string | null {
+  if (!authorizationHeader) return null;
+  const token = authorizationHeader.startsWith("Bearer ")
+    ? authorizationHeader.slice("Bearer ".length).trim()
+    : "";
+
+  if (!token) return null;
+
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized);
+    const claims = JSON.parse(json) as { sub?: string };
+    return claims.sub ?? null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -29,21 +50,17 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Missing Supabase environment variables." }, { status: 500 });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: { Authorization: req.headers.get("Authorization") ?? "" },
-    },
-  });
-
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData?.user) {
+  const userId = parseUserIdFromAuthorizationHeader(req.headers.get("Authorization"));
+  if (!userId) {
     return jsonResponse({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const { data, error } = await supabase
     .from("pet_stats")
     .select("*")
-    .eq("user_id", authData.user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {

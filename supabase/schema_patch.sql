@@ -202,46 +202,8 @@ to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
 
--- -----------------------------
--- 5) Story generation access control
--- -----------------------------
-
-create table if not exists public.story_generation_access (
-  user_id uuid primary key references auth.users (id) on delete cascade,
-  email text not null,
-  status text not null default 'pending',
-  requested_at timestamptz not null default now(),
-  approved_at timestamptz,
-  reviewed_by text,
-  notes text,
-  updated_at timestamptz not null default now(),
-  constraint story_generation_access_status_check check (status in ('pending', 'approved', 'rejected'))
-);
-
-create index if not exists story_generation_access_status_idx
-  on public.story_generation_access (status, requested_at desc);
-
-alter table if exists public.story_generation_access enable row level security;
 
 drop policy if exists "story_generation_access_select_own" on public.story_generation_access;
 drop policy if exists "story_generation_access_insert_own" on public.story_generation_access;
 drop policy if exists "story_generation_access_update_own_pending" on public.story_generation_access;
-
-create policy "story_generation_access_select_own"
-on public.story_generation_access
-for select
-to authenticated
-using (user_id = auth.uid());
-
-create policy "story_generation_access_insert_own"
-on public.story_generation_access
-for insert
-to authenticated
-with check (user_id = auth.uid() and email = auth.email());
-
-create policy "story_generation_access_update_own_pending"
-on public.story_generation_access
-for update
-to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid() and status = 'pending' and email = auth.email());
+drop table if exists public.story_generation_access;

@@ -44,23 +44,14 @@ cd "D:\react apps\kk"
 supabase secrets set HUGGINGFACE_API_KEY=hf_your_actual_token_here
 ```
 
-### Step 3: Choose Image Mode (Optional)
+### Step 3: Enable Testing Mode (Optional)
 ```bash
-# For testing WITHOUT generating paid images (uses sample bucket images)
-supabase secrets set IMAGE_MODE=sample
+# For testing WITHOUT generating images (uses placeholders)
+supabase secrets set SKIP_IMAGE_GENERATION=true
 
-# For production paid generation
-supabase secrets set IMAGE_MODE=huggingface
+# For production (actual image generation)
+supabase secrets set SKIP_IMAGE_GENERATION=false
 ```
-
-### Step 3.1: Restrict Who Can Generate Paid Images
-```bash
-# Optional allowlist (comma separated emails)
-supabase secrets set IMAGE_ALLOWED_EMAILS="you@example.com,friend@example.com"
-```
-
-If `IMAGE_ALLOWED_EMAILS` is set, only these email accounts can generate real HuggingFace images.
-All other users can still use sample images when `IMAGE_MODE=sample` or when the frontend requests sample images.
 
 ### Step 4: Deploy Updated Function
 ```bash
@@ -145,8 +136,6 @@ npm run dev
 - All image generation happens server-side (Edge Function)
 - Users never see your HuggingFace token
 - Images stored per-user in isolated folders
-- JWT verification is enabled for functions (authenticated requests required)
-- Real image generation can be restricted to verified + allowlisted emails
 
 ---
 
