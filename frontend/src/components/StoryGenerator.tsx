@@ -27,28 +27,48 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const navigate = useNavigate();
 	const supabase = requireSupabaseClient();
 	const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string | undefined;
+	const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? '';
 	const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
 	const generateUrl = `${functionsBaseUrl}/generate-story`;
 	const saveUrl = `${functionsBaseUrl}/save-story`;
-	const requestAccessUrl = `${functionsBaseUrl}/request-access`;
 	const [genre, setGenre] = useState('A brave puppy in space');
 	const [chapters, setChapters] = useState(3);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState('');
-	const [accessRequired, setAccessRequired] = useState(false);
-	const [requestStatus, setRequestStatus] = useState('');
-	const [requestingAccess, setRequestingAccess] = useState(false);
 	const [story, setStory] = useState<GeneratedStory | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [useSampleImages, setUseSampleImages] = useState(true);
 	const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null);
 
+	const getTokenExpiry = (jwt: string): number | null => {
+		try {
+			const payload = jwt.split('.')[1];
+			if (!payload) return null;
+			const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+			const decoded = JSON.parse(atob(normalized));
+			return typeof decoded?.exp === 'number' ? decoded.exp : null;
+		} catch (_error) {
+			return null;
+		}
+	};
+
 	const getAccessToken = async () => {
 		const fallback = token?.trim();
 		const { data, error } = await supabase.auth.getSession();
 		if (error) throw error;
-		return data.session?.access_token ?? fallback ?? '';
+
+		let accessToken = data.session?.access_token ?? fallback ?? '';
+		const exp = accessToken ? getTokenExpiry(accessToken) : null;
+		const now = Math.floor(Date.now() / 1000);
+
+		if (exp !== null && exp - now < 60) {
+			const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+			if (refreshError) throw refreshError;
+			accessToken = refreshed.session?.access_token ?? accessToken;
+		}
+
+		return accessToken;
 	};
 
 	const generateStory = async () => {
@@ -59,8 +79,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 		setLoading(true);
 		setError('');
-		setRequestStatus('');
-		setAccessRequired(false);
 		setStory(null);
 		setImageProgress(null);
 		try {
@@ -72,6 +90,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 			const res = await fetch(generateUrl, {
 				method: 'POST',
 				headers: {
+					apikey: supabaseAnonKey,
 					'Content-Type': 'application/json',
 					Authorization: `Bearer ${accessToken}`,
 				},
@@ -80,9 +99,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 			if (!res.ok) {
 				const errBody = await res.json().catch(() => ({}));
-				if (res.status === 403 && errBody?.code === 'access_required') {
-					setAccessRequired(true);
-				}
 				throw new Error(errBody.error || `Request failed: ${res.status}`);
 			}
 
@@ -136,42 +152,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		}
 	};
 
-	const requestAccess = async () => {
-		if (!functionsBaseUrl) {
-			setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
-			return;
-		}
-
-		setRequestingAccess(true);
-		setRequestStatus('');
-		try {
-			const accessToken = await getAccessToken();
-			if (!accessToken) {
-				throw new Error('Your session expired. Please log in again.');
-			}
-
-			const res = await fetch(requestAccessUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${accessToken}`,
-				},
-				body: JSON.stringify({}),
-			});
-
-			const body = await res.json().catch(() => ({}));
-			if (!res.ok) {
-				throw new Error(body.error || `Request failed: ${res.status}`);
-			}
-
-			setRequestStatus('Access request sent. Please wait for approval.');
-		} catch (err) {
-			setRequestStatus(err instanceof Error ? err.message : 'Failed to send access request.');
-		} finally {
-			setRequestingAccess(false);
-		}
-	};
-
 	const saveStory = async () => {
 		if (!story) return;
 		if (!functionsBaseUrl) {
@@ -188,7 +168,10 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 			}
 
 			await axios.post(saveUrl, story, {
-				headers: { Authorization: `Bearer ${accessToken}` }
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					apikey: supabaseAnonKey,
+				}
 			});
 			alert('Story saved to your library!');
 			navigate('/library');
@@ -264,15 +247,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 			</div>
 
 			{error && <p style={{ color: '#ff6b6b', marginTop: '16px' }}>{error}</p>}
-
-			{accessRequired && (
-				<div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-					<button type="button" onClick={requestAccess} disabled={requestingAccess}>
-						{requestingAccess ? 'Sending request...' : 'Request Access'}
-					</button>
-					{requestStatus && <p style={{ color: '#9ecbff' }}>{requestStatus}</p>}
-				</div>
-			)}
 
 			{imageProgress && (
 				<div style={{ marginTop: '16px', textAlign: 'center' }}>
