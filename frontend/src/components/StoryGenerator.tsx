@@ -35,7 +35,8 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const [error, setError] = useState('');
 	const [story, setStory] = useState<GeneratedStory | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
-  const [useSampleImages, setUseSampleImages] = useState(true);
+	const [useSampleImages, setUseSampleImages] = useState(true);
+	const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null);
 	const generateStory = async () => {
 		if (!functionsBaseUrl) {
 			setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
@@ -45,18 +46,69 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		setLoading(true);
 		setError('');
 		setStory(null);
+		setImageProgress(null);
 		try {
-			const res = await axios.post(
-				generateUrl,
-				{ genre, chapters, use_sample_images: useSampleImages },
-				{ headers: { Authorization: `Bearer ${token}` } }
-			);
-			setStory(res.data);
+			const res = await fetch(generateUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ genre, chapters, use_sample_images: useSampleImages }),
+			});
+
+			if (!res.ok) {
+				const errBody = await res.json().catch(() => ({}));
+				throw new Error(errBody.error || `Request failed: ${res.status}`);
+			}
+
+			const contentType = res.headers.get('content-type') || '';
+
+			if (contentType.includes('application/x-ndjson')) {
+				// Streaming response: text first, then images progressively
+				const reader = res.body!.getReader();
+				const decoder = new TextDecoder();
+				let buffer = '';
+
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split('\n');
+					buffer = lines.pop()!;
+
+					for (const line of lines) {
+						if (!line.trim()) continue;
+						const event = JSON.parse(line);
+						if (event.type === 'story_text') {
+							setStory({ title: event.title, moral: event.moral, chapters: event.chapters });
+							setImageProgress({ done: 0, total: event.chapters.length });
+						} else if (event.type === 'chapter_image') {
+							setStory((prev) => {
+								if (!prev) return prev;
+								const updated = [...prev.chapters];
+								updated[event.index] = {
+									...updated[event.index],
+									image_url: event.image_url,
+									image_error: event.image_error,
+								};
+								return { ...prev, chapters: updated };
+							});
+							setImageProgress((prev) => (prev ? { ...prev, done: prev.done + 1 } : null));
+						}
+					}
+				}
+			} else {
+				// Non-streaming JSON response (sample images)
+				const data = await res.json();
+				setStory(data);
+			}
 		} catch (err) {
 			console.error('Generate failed:', err);
-			setError('Failed to generate story. Please try again.');
+			setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
 		} finally {
 			setLoading(false);
+			setImageProgress(null);
 		}
 	};
 
@@ -148,12 +200,29 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 			{error && <p style={{ color: '#ff6b6b', marginTop: '16px' }}>{error}</p>}
 
+			{imageProgress && (
+				<div style={{ marginTop: '16px', textAlign: 'center' }}>
+					<p style={{ color: '#a78bfa', fontWeight: 600 }}>
+						🎨 Generating images… {imageProgress.done}/{imageProgress.total}
+					</p>
+					<div style={{ width: '100%', height: '6px', background: '#2d2d3d', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
+						<div style={{
+							width: `${(imageProgress.done / imageProgress.total) * 100}%`,
+							height: '100%',
+							background: 'linear-gradient(90deg, #a78bfa, #ec4899)',
+							borderRadius: '3px',
+							transition: 'width 0.5s ease',
+						}} />
+					</div>
+				</div>
+			)}
+
 			{story && (
 				<div className="generated-story">
 					<div className="story-header">
 						<h3>{story.title}</h3>
 						<div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-							<button type="button" onClick={openReader}>
+							<button type="button" onClick={openReader} disabled={loading}>
 								Read in Flip Book
 							</button>
 							<button
@@ -164,7 +233,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 								{isPlaying ? <Square size={16} /> : <Play size={16} />}
 								{isPlaying ? 'Stop Audio' : 'Play Audio'}
 							</button>
-							<button type="button" onClick={saveStory} disabled={saving}>
+							<button type="button" onClick={saveStory} disabled={saving || loading}>
 								<Save size={16} style={{ marginRight: 8 }} /> {saving ? 'Saving...' : 'Save to Library'}
 							</button>
 						</div>
@@ -172,13 +241,21 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 					{story.chapters.map((chapter, index) => (
 						<div key={`${chapter.title}-${index}`} className="story-chapter">
-							{chapter.image_url && (
+							{chapter.image_url ? (
 								<img
 									src={chapter.image_url}
 									alt={`${chapter.title} illustration`}
 									style={{ width: '100%', borderRadius: '14px', marginBottom: '16px' }}
 								/>
-							)}
+							) : !chapter.image_error && imageProgress ? (
+								<div style={{
+									width: '100%', height: '200px', borderRadius: '14px', marginBottom: '16px',
+									background: 'linear-gradient(135deg, #1a1a2e 0%, #2d2d3d 50%, #1a1a2e 100%)',
+									display: 'flex', alignItems: 'center', justifyContent: 'center',
+								}}>
+									<span style={{ color: '#a78bfa', fontSize: '14px' }}>🎨 Generating image…</span>
+								</div>
+							) : null}
 							{chapter.image_error && (
 								<p style={{ color: '#ff6b6b', marginBottom: '12px' }}>
 									Image unavailable: {chapter.image_error}

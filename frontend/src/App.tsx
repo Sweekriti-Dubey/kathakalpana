@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Book, LogOut, Sparkles } from 'lucide-react';
 import './App.css';
-import { supabase } from './lib/supabaseClient';
+import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import Login from './components/Login';
@@ -18,8 +18,17 @@ const App: React.FC = () => {
   useEffect(() => {
     let mounted = true;
 
+    if (!isFrontendConfigured) {
+      setAuthReady(true);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const client = requireSupabaseClient();
+
     const initAuth = async () => {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       if (mounted) {
         setSession(data.session ?? null);
         setAuthReady(true);
@@ -28,7 +37,7 @@ const App: React.FC = () => {
 
     initAuth();
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, nextSession: Session | null) => {
+    const { data: subscription } = client.auth.onAuthStateChange((event: AuthChangeEvent, nextSession: Session | null) => {
       if (mounted) {
         setSession(nextSession);
         setAuthReady(true);
@@ -46,7 +55,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    supabase.auth.signOut();
+    requireSupabaseClient().auth.signOut();
   };
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -54,6 +63,10 @@ const App: React.FC = () => {
     if (!session) return <Navigate to="/login" replace />;
     return <>{children}</>;
   };
+
+  if (!isFrontendConfigured) {
+    return <ConfigurationErrorScreen missingVars={missingFrontendEnvVars} />;
+  }
 
   return (
     <Router>
@@ -131,6 +144,29 @@ const HomePage = () => (
       </div>
     </section>
   </>
+);
+
+const ConfigurationErrorScreen = ({ missingVars }: { missingVars: string[] }) => (
+  <div className="config-error-screen">
+    <section className="config-error-card">
+      <p className="config-error-eyebrow">Deployment configuration required</p>
+      <h1>Frontend env vars are missing.</h1>
+      <p>
+        Vite only exposes browser env vars that start with <code>VITE_</code>. Your Vercel build is missing the values below,
+        so the app cannot create the Supabase client.
+      </p>
+
+      <div className="config-error-list">
+        {missingVars.map((variableName) => (
+          <code key={variableName}>{variableName}</code>
+        ))}
+      </div>
+
+      <p>
+        Add them in Vercel Project Settings &gt; Environment Variables for the relevant environments, then redeploy.
+      </p>
+    </section>
+  </div>
 );
 
 export default App;

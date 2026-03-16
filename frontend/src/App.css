@@ -418,6 +418,62 @@ button:disabled {
   margin: 0 auto;      /* Center the block */
 }
 
+.config-error-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.config-error-card {
+  width: min(680px, 100%);
+  padding: 36px;
+  border-radius: 24px;
+  background: rgba(30, 30, 30, 0.92);
+  border: 1px solid rgba(255, 107, 158, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.config-error-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  color: var(--secondary-color);
+  margin-bottom: 12px;
+}
+
+.config-error-card h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin-bottom: 16px;
+  color: white;
+}
+
+.config-error-card p {
+  color: #d8d8dd;
+}
+
+.config-error-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.config-error-list code {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 107, 158, 0.12);
+  border: 1px solid rgba(255, 107, 158, 0.3);
+  color: #ffd8e6;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .config-error-card {
+    padding: 28px;
+  }
+}
+
 .story-moral {
   background-color: rgba(76, 175, 80, 0.1);
   border: 1px solid var(--success-color);
