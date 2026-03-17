@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Book, LogOut, Sparkles } from 'lucide-react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import './App.css';
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
@@ -118,12 +119,22 @@ const App: React.FC = () => {
 
 const HomePage = () => (
   <>
-    <section className="hero-section">
-      <h1>Where Imagination Lives</h1>
-      <p>Bring stories to life with AI-powered narration and magical illustrations.</p>
-      <Link to="/generate" className="cta-button">
-        Get Started <Book size={18} />
-      </Link>
+    <section className="hero-section hero-lottie">
+      <div className="lottie-container">
+        <DotLottieReact
+          src="https://lottie.host/7de074ff-be0a-4ddd-94f2-7e2c707ffcdb/chY8jROpeu.lottie"
+          loop
+          autoplay
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div className="hero-overlay">
+        <h1 className="hero-title">Where Imagination Lives</h1>
+        <p className="hero-subtitle">Bring stories to life with AI-powered narration and magical illustrations.</p>
+        <Link to="/generate" className="cta-button cta-button-overlay">
+          Get Started <Book size={18} />
+        </Link>
+      </div>
     </section>
 
     <section className="features-section">

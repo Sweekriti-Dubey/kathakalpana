@@ -151,6 +151,98 @@ body {
   animation: slideInLeft 0.8s ease-out;
 }
 
+/* Lottie Animation Hero */
+.hero-section.hero-lottie {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(74, 63, 109, 0.3), rgba(255, 107, 158, 0.1));
+}
+
+.lottie-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.hero-overlay {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  animation: fadeIn 1.2s ease-out 0.3s both;
+}
+
+.hero-title {
+  font-size: 3.5em;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 107, 158, 0.4);
+  font-weight: 800;
+  letter-spacing: -1px;
+  animation: slideInDown 0.8s ease-out 0.5s both;
+}
+
+.hero-subtitle {
+  font-size: 1.2em;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  max-width: 600px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-weight: 500;
+  animation: slideInUp 0.8s ease-out 0.7s both;
+}
+
+.cta-button-overlay {
+  animation: scaleIn 0.6s ease-out 0.9s both;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .hero-section h1 {
   font-size: 3em;
   color: var(--secondary-color);
@@ -175,13 +267,22 @@ body {
   margin-top: 20px;
   animation: bounceIn 1s ease-out 0.7s both;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 158, 0.3);
+  border: 2px solid transparent;
 }
 
 .cta-button:hover {
   background-color: var(--accent-color);
   transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 10px 30px rgba(255, 107, 158, 0.4);
+  box-shadow: 0 10px 30px rgba(255, 107, 158, 0.5);
   animation: pulse 1s ease-in-out infinite;
+}
+
+.cta-button-overlay {
+  margin-top: 0;
+  padding: 14px 40px;
+  font-size: 1.1em;
+  box-shadow: 0 6px 25px rgba(255, 107, 158, 0.4);
 }
 
 /* Features Section */
