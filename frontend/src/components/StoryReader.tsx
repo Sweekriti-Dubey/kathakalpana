@@ -24,6 +24,31 @@ const StoryReader: React.FC = () => {
   const petStatusUrl = `${functionsBaseUrl}/pet-status`;
   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? '';
 
+  // Stop audio playback on component unmount or navigation
+  React.useEffect(() => {
+    const stopAudio = () => {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+    };
+
+    // Stop audio when user leaves the page (navigation)
+    return () => {
+      stopAudio();
+    };
+  }, []);
+
+  // Stop audio when closing/unloading the app
+  React.useEffect(() => {
+    const handleBeforeUnload = () => {
+      window.speechSynthesis.cancel();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   if (!story) {
     navigate('/library');
     return null;
@@ -79,7 +104,12 @@ const StoryReader: React.FC = () => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
     utterance.pitch = 1.05;
-    utterance.onend = () => setIsPlaying(false);
+    utterance.onend = () => {
+      setIsPlaying(false);
+    };
+    utterance.onerror = () => {
+      setIsPlaying(false);
+    };
     setIsPlaying(true);
     window.speechSynthesis.speak(utterance);
   };
@@ -251,7 +281,7 @@ const StoryReader: React.FC = () => {
       )}
 
       {petGrowth && (
-        <div className="ml-auto max-w-sm bg-emerald-950/30 border border-emerald-500/40 rounded-2xl p-4 flex flex-col gap-3">
+        <div className="max-w-sm bg-emerald-950/90 border border-emerald-500/40 rounded-2xl p-4 flex flex-col gap-3" style={{ position: 'fixed', right: '24px', bottom: '24px', zIndex: 50 }}>
           <p className="text-emerald-200 text-sm font-semibold">🎉 Your pet grew after this story!</p>
           <div className="text-xs text-emerald-100/90 space-y-1">
             <p>Name: <span className="font-bold">{petGrowth.pet_name}</span></p>
@@ -267,11 +297,11 @@ const StoryReader: React.FC = () => {
         </div>
       )}
 
-      {/* Moral Section (Only shown on last page) */}
+      {/* Moral Section (Fixed overlay at bottom center - only shown on last page) */}
       {currentPage === totalChapters - 1 && (
-        <div className="bg-purple-950/20 border border-purple-500/30 p-6 rounded-2xl text-center flex flex-col items-center gap-3">
-          <Sparkles className="text-purple-400" />
-          <p className="text-purple-200 italic font-medium">"{story.moral}"</p>
+        <div className="max-w-md bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 flex flex-col items-center gap-2" style={{ position: 'fixed', left: '50%', bottom: '24px', transform: 'translateX(-50%)', zIndex: 40 }}>
+          <Sparkles className="text-purple-400" size={18} />
+          <p className="text-purple-200 italic font-medium text-sm text-center">"{story.moral}"</p>
         </div>
       )}
     </div>

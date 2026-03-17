@@ -16,6 +16,21 @@ type StoryPayload = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
+function extractBearerToken(authorizationHeader: string | null): string | null {
+  if (!authorizationHeader) return null;
+  const match = authorizationHeader.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
+}
+
+function parseUserIdFromToken(token: string): string {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Invalid JWT format");
+  const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const decodedPayload = JSON.parse(atob(normalized)) as { sub?: string };
+  if (!decodedPayload.sub) throw new Error("No user ID in token");
+  return decodedPayload.sub;
+}
+
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
     ...init,
@@ -47,31 +62,25 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Story payload missing required fields." }, { status: 400 });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: { Authorization: req.headers.get("Authorization") ?? "" },
-    },
-  });
+  const authHeader = req.headers.get("Authorization");
+  const token = extractBearerToken(authHeader);
 
-  // Decode token to get user_id (JWT format: header.payload.signature)
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace("Bearer ", "");
-  
   if (!token) {
     return jsonResponse({ error: "Missing authorization token" }, { status: 401 });
   }
 
-  // Decode token to get user_id (JWT format: header.payload.signature)
   let userId: string;
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) throw new Error("Invalid JWT format");
-    const decodedPayload = JSON.parse(atob(parts[1]));
-    userId = decodedPayload.sub; // Supabase stores user ID as "sub" claim
-    if (!userId) throw new Error("No user ID in token");
+    userId = parseUserIdFromToken(token);
   } catch (e) {
     return jsonResponse({ error: "Invalid token: " + (e as Error).message }, { status: 401 });
   }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  });
 
   const { data, error } = await supabase
     .from("stories")
