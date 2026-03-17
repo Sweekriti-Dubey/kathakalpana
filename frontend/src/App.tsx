@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Book, LogOut, Sparkles } from 'lucide-react';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import './App.css';
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import Login from './components/Login';
-import Library from './components/Library';
-import StoryGenerator from './components/StoryGenerator';
-import StoryReader from './components/StoryReader';
-import PetDashboard from './components/PetDashBoard';
+
+// Lazy load components for better code splitting
+const Library = React.lazy(() => import('./components/Library'));
+const StoryGenerator = React.lazy(() => import('./components/StoryGenerator'));
+const StoryReader = React.lazy(() => import('./components/StoryReader'));
+const PetDashboard = React.lazy(() => import('./components/PetDashBoard'));
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -104,10 +105,46 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route path="/generate" element={<ProtectedRoute><StoryGenerator token={session?.access_token ?? ''} /></ProtectedRoute>} />
-            <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
-            <Route path="/read" element={<ProtectedRoute><StoryReader /></ProtectedRoute>} />
-            <Route path="/pet" element={<ProtectedRoute><PetDashboard /></ProtectedRoute>} />
+            <Route 
+              path="/generate" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <StoryGenerator token={session?.access_token ?? ''} />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/library" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Library />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/read" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <StoryReader />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/pet" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <PetDashboard />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
         </main>
 
@@ -119,22 +156,12 @@ const App: React.FC = () => {
 
 const HomePage = () => (
   <>
-    <section className="hero-section hero-lottie">
-      <div className="lottie-container">
-        <DotLottieReact
-          src="https://lottie.host/7de074ff-be0a-4ddd-94f2-7e2c707ffcdb/chY8jROpeu.lottie"
-          loop
-          autoplay
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
-      <div className="hero-overlay">
-        <h1 className="hero-title">Where Imagination Lives</h1>
-        <p className="hero-subtitle">Bring stories to life with AI-powered narration and magical illustrations.</p>
-        <Link to="/generate" className="cta-button cta-button-overlay">
-          Get Started <Book size={18} />
-        </Link>
-      </div>
+    <section className="hero-section">
+      <h1>Where Imagination Lives</h1>
+      <p>Bring stories to life with AI-powered narration and magical illustrations.</p>
+      <Link to="/generate" className="cta-button">
+        Get Started <Book size={18} />
+      </Link>
     </section>
 
     <section className="features-section">
@@ -155,6 +182,28 @@ const HomePage = () => (
       </div>
     </section>
   </>
+);
+
+const LoadingSpinner = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ 
+        display: 'inline-block',
+        width: '50px',
+        height: '50px',
+        border: '4px solid rgba(255, 107, 158, 0.2)',
+        borderTop: '4px solid #FF6B9E',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }} />
+      <p style={{ color: '#888', marginTop: '12px', fontSize: '0.9em' }}>Loading...</p>
+    </div>
+    <style>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
 );
 
 const ConfigurationErrorScreen = ({ missingVars }: { missingVars: string[] }) => (
