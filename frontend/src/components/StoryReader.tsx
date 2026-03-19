@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ChevronRight, ChevronLeft, CheckCircle, Sparkles, Play, Square, Save } from 'lucide-react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { PetStatus, Story } from '../types';
 import { requireSupabaseClient } from '../lib/supabaseClient';
 
@@ -18,11 +19,20 @@ const StoryReader: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [petGrowth, setPetGrowth] = useState<PetStatus | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showFoodFeeding, setShowFoodFeeding] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<string | null>(null);
   const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
   const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
   const completeUrl = `${functionsBaseUrl}/complete-reading`;
   const petStatusUrl = `${functionsBaseUrl}/pet-status`;
   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? '';
+
+  const foodOptions = [
+    { id: 'panipuri', name: 'Panipuri 🥣', image: '/assets/food/panipuri.jpeg' },
+    { id: 'burger', name: 'Burger 🍔', image: '/assets/food/burger.jpeg' },
+    { id: 'pizza', name: 'Pizza 🍕', image: '/assets/food/pizza.jpeg' },
+    { id: 'apple', name: 'Apple 🍎', image: '/assets/food/apple.jpeg' }
+  ];
 
   // Stop audio playback on component unmount or navigation
   React.useEffect(() => {
@@ -31,13 +41,11 @@ const StoryReader: React.FC = () => {
       setIsPlaying(false);
     };
 
-    // Stop audio when user leaves the page (navigation)
     return () => {
       stopAudio();
     };
   }, []);
 
-  // Stop audio when closing/unloading the app
   React.useEffect(() => {
     const handleBeforeUnload = () => {
       window.speechSynthesis.cancel();
@@ -144,6 +152,11 @@ const StoryReader: React.FC = () => {
   };
 
   const handleFinish = async () => {
+    setShowFoodFeeding(true);
+  };
+
+  const handleFoodSelected = async (foodId: string) => {
+    setSelectedFood(foodId);
     if (!functionsBaseUrl) {
       setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
       return;
@@ -156,7 +169,7 @@ const StoryReader: React.FC = () => {
 
       await axios.post(
         completeUrl, 
-        {}, 
+        { food: foodId },
         { headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey } }
       );
 
@@ -165,6 +178,7 @@ const StoryReader: React.FC = () => {
       });
 
       setPetGrowth(petRes.data);
+      setShowFoodFeeding(false);
     } catch (err) {
       console.error("Failed to update stats:", err);
       if (axios.isAxiosError(err)) {
@@ -281,19 +295,57 @@ const StoryReader: React.FC = () => {
       )}
 
       {petGrowth && (
-        <div className="max-w-sm bg-emerald-950/90 border border-emerald-500/40 rounded-2xl p-4 flex flex-col gap-3" style={{ position: 'fixed', right: '24px', bottom: '24px', zIndex: 50 }}>
-          <p className="text-emerald-200 text-sm font-semibold">🎉 Your pet grew after this story!</p>
-          <div className="text-xs text-emerald-100/90 space-y-1">
-            <p>Name: <span className="font-bold">{petGrowth.pet_name}</span></p>
-            <p>Stage: <span className="font-bold capitalize">{petGrowth.evolution_stage}</span></p>
-            <p>Level: <span className="font-bold">{petGrowth.level}</span> · XP: <span className="font-bold">{petGrowth.xp}</span></p>
+        <div style={{ position: 'fixed', right: '40px', bottom: '40px', zIndex: 50, maxWidth: '400px' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))',
+            border: '2px solid rgba(34, 197, 94, 0.5)',
+            borderRadius: '25px',
+            padding: '30px',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            textAlign: 'center'
+          }}>
+            <p style={{ fontSize: '2.5em', marginBottom: '15px' }}>🎉</p>
+            <p style={{ color: '#ECFDF5', fontSize: '1.4em', fontWeight: 'bold', marginBottom: '20px' }}>
+              Your pet grew!
+            </p>
+            <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '15px', padding: '20px', marginBottom: '20px' }}>
+              <p style={{ color: '#D1FAE5', fontSize: '1.1em', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 'bold' }}>{petGrowth.pet_name}</span>
+              </p>
+              <p style={{ color: '#D1FAE5', fontSize: '1em', marginBottom: '8px' }}>
+                Stage: <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{petGrowth.evolution_stage}</span>
+              </p>
+              <p style={{ color: '#D1FAE5', fontSize: '1em' }}>
+                Level: <span style={{ fontWeight: 'bold' }}>{petGrowth.level}</span> · XP: <span style={{ fontWeight: 'bold' }}>{petGrowth.xp}</span>
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/pet')}
+              style={{
+                background: 'linear-gradient(135deg, #059669, #047857)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 30px',
+                borderRadius: '20px',
+                fontSize: '1em',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              View Chotuu
+            </button>
           </div>
-          <button
-            onClick={() => navigate('/pet')}
-            className="self-start px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors"
-          >
-            Go to Chotuu page
-          </button>
         </div>
       )}
 
@@ -302,6 +354,134 @@ const StoryReader: React.FC = () => {
         <div className="max-w-md bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 flex flex-col items-center gap-2" style={{ position: 'fixed', left: '50%', bottom: '24px', transform: 'translateX(-50%)', zIndex: 40 }}>
           <Sparkles className="text-purple-400" size={18} />
           <p className="text-purple-200 italic font-medium text-sm text-center">"{story.moral}"</p>
+        </div>
+      )}
+
+      {/* Food Feeding Modal */}
+      {showFoodFeeding && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          backdropFilter: 'blur(4px)',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#1E1E1E',
+            borderRadius: '20px',
+            padding: '25px',
+            maxWidth: '380px',
+            border: '2px solid rgba(255, 107, 158, 0.3)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ color: '#FF6B9E', fontSize: '1.4em', marginBottom: '15px', fontWeight: 'bold' }}>
+              🐲 Feed Chotuu!
+            </h2>
+            
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+              <DotLottieReact
+                src="https://lottie.host/ede28d81-acb0-4fe9-a9df-42f14c67ae4a/BEyZkJV2Ug.lottie"
+                loop
+                autoplay
+                style={{ width: '180px', height: '180px' }}
+              />
+            </div>
+
+            <p style={{ color: '#E0E0E0', marginBottom: '20px', fontSize: '0.95em' }}>
+              Choose a food:
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+              marginBottom: '20px'
+            }}>
+              {foodOptions.map((food) => (
+                <div
+                  key={food.id}
+                  onClick={() => handleFoodSelected(food.id)}
+                  style={{
+                    position: 'relative',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: selectedFood === food.id ? '2.5px solid #FF6B9E' : '2.5px solid rgba(255, 255, 255, 0.2)',
+                    cursor: loading || selectedFood !== null ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    opacity: loading && selectedFood !== food.id ? 0.5 : 1,
+                    transform: selectedFood === food.id ? 'scale(1.08)' : 'scale(1)',
+                    boxShadow: selectedFood === food.id ? '0 0 20px rgba(255, 107, 158, 0.5)' : 'none',
+                    backgroundColor: selectedFood === food.id ? 'rgba(255, 107, 158, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading && selectedFood === null) {
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                      e.currentTarget.style.boxShadow = '0 0 15px rgba(255, 107, 158, 0.3)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedFood === null) {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  <img
+                    src={food.image}
+                    alt={food.name}
+                    style={{
+                      width: '100%',
+                      height: '80px',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {selectedFood && (
+              <div style={{
+                position: 'relative',
+                marginTop: '15px',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #FF6B9E, #FF85B8)',
+                  color: 'white',
+                  padding: '12px 24px',
+                  borderRadius: '25px',
+                  fontSize: '0.95em',
+                  fontWeight: 'bold',
+                  boxShadow: '0 8px 20px rgba(255, 107, 158, 0.4)',
+                  position: 'relative',
+                  animation: loading ? 'pulse 1.5s ease-in-out infinite' : 'none'
+                }}>
+                  {loading ? '🦉 Om nom nom... ✨' : '✓ Yummy!'}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-8px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '0',
+                    height: '0',
+                    borderLeft: '8px solid transparent',
+                    borderRight: '8px solid transparent',
+                    borderTop: '8px solid #FF6B9E'
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -11,7 +11,7 @@ function Library() {
   const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
   const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
   const listUrl = `${functionsBaseUrl}/my-stories`;
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchLibrary();
@@ -48,7 +48,6 @@ function Library() {
   };
 
   const openStory = (story) => {
-    // Navigate to the Reader page and pass the story data
     navigate('/read', { state: { story: story } });
   };
 
@@ -57,7 +56,7 @@ function Library() {
 
   return (
     <div className="library-container" style={{padding: '40px', color: 'white'}}>
-      <h2 style={{textAlign:'center', marginBottom: '30px'}}>📚 My Story Collection</h2>
+      <h2 style={{textAlign:'center', marginBottom: '30px'}}>My Story Collection</h2>
       
       {stories.length === 0 ? (
         <div style={{textAlign:'center', opacity: 0.7}}>No stories saved yet. Go create one!</div>
@@ -67,13 +66,13 @@ function Library() {
             <div 
               key={story.id ?? story._id} 
               className="story-card" 
-              onClick={() => openStory(story)} // <--- CLICK HANDLER ADDED HERE
+              onClick={() => openStory(story)}
               style={{
                 background: '#2a2a2a', 
                 borderRadius: '15px', 
                 overflow: 'hidden', 
                 padding: '20px', 
-                cursor: 'pointer', // <--- MOUSE HAND POINTER
+                cursor: 'pointer',
                 transition: 'transform 0.2s'
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
@@ -90,7 +89,7 @@ function Library() {
               <p style={{fontSize: '0.9em', color: '#aaa'}}><Calendar size={14} /> {new Date(story.created_at).toLocaleDateString()}</p>
               
               <div style={{marginTop: '15px'}}>
-                <span style={{background: '#4facfe', color: 'white', padding: '5px 10px', borderRadius: '10px', fontSize: '0.8em'}}>
+                <span style={{background: 'linear-gradient(135deg, #ff5fa0, #8b5cf6)', color: 'white', padding: '10px 20px', borderRadius: '100px', fontSize: '0.8em', fontWeight: '600', border: 'none', cursor: 'pointer', display: 'inline-block'}}>
                   {story.chapters.length} Chapters
                 </span>
               </div>

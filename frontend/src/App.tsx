@@ -1,11 +1,12 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Book, LogOut, Sparkles } from 'lucide-react';
+import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark } from 'lucide-react';
 import './App.css';
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import Login from './components/Login';
+import LibraryDoors from './components/LibraryDoors';
 
 // Lazy load components for better code splitting
 const Library = React.lazy(() => import('./components/Library'));
@@ -52,13 +53,8 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handleLogin = (nextSession: Session | null) => {
-    setSession(nextSession);
-  };
-
-  const handleLogout = () => {
-    requireSupabaseClient().auth.signOut();
-  };
+  const handleLogin = (nextSession: Session | null) => setSession(nextSession);
+  const handleLogout = () => requireSupabaseClient().auth.signOut();
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!authReady) return null;
@@ -74,9 +70,7 @@ const App: React.FC = () => {
     <Router>
       <div className="app-container">
         <nav className="navbar">
-          <h1 className="title">
-            Katha Kalpana
-          </h1>
+          <h1 className="title">Katha Kalpana</h1>
           <div className="nav-links">
             <Link to="/">Home</Link>
             {session && (
@@ -87,16 +81,11 @@ const App: React.FC = () => {
               </>
             )}
             {session ? (
-              <button
-                onClick={handleLogout} 
-                className="logout-btn"
-              >
-                <LogOut size={16} /> Logout
+              <button onClick={handleLogout} className="logout-btn">
+                <LogOut size={15} /> Logout
               </button>
             ) : (
-              <Link to="/login">
-                Login
-              </Link>
+              <Link to="/login">Login</Link>
             )}
           </div>
         </nav>
@@ -105,45 +94,45 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route 
-              path="/generate" 
+            <Route
+              path="/generate"
               element={
                 <ProtectedRoute>
                   <Suspense fallback={<LoadingSpinner />}>
                     <StoryGenerator token={session?.access_token ?? ''} />
                   </Suspense>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/library" 
+            <Route
+              path="/library"
               element={
                 <ProtectedRoute>
                   <Suspense fallback={<LoadingSpinner />}>
                     <Library />
                   </Suspense>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/read" 
+            <Route
+              path="/read"
               element={
                 <ProtectedRoute>
                   <Suspense fallback={<LoadingSpinner />}>
                     <StoryReader />
                   </Suspense>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/pet" 
+            <Route
+              path="/pet"
               element={
                 <ProtectedRoute>
                   <Suspense fallback={<LoadingSpinner />}>
                     <PetDashboard />
                   </Suspense>
                 </ProtectedRoute>
-              } 
+              }
             />
           </Routes>
         </main>
@@ -154,55 +143,135 @@ const App: React.FC = () => {
   );
 };
 
-const HomePage = () => (
-  <>
-    <section className="hero-section">
-      <h1>Where Imagination Lives</h1>
-      <p>Bring stories to life with AI-powered narration and magical illustrations.</p>
-      <Link to="/generate" className="cta-button">
-        Get Started <Book size={18} />
-      </Link>
-    </section>
+const HomePage = () => {
+  const [visibleFeatures, setVisibleFeatures] = useState<Set<number>>(new Set());
+  const [leavingFeatures, setLeavingFeatures] = useState<Set<number>>(new Set());
+  const featureRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+  const timeoutRefs = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
 
-    <section className="features-section">
-      <div className="feature">
-        <Book />
-        <h3>Generate Stories</h3>
-        <p>Create magical chapter-based adventures from any idea.</p>
-      </div>
-      <div className="feature">
-        <Sparkles />
-        <h3>Read & Listen</h3>
-        <p>Enjoy story pages and optional narration for kids.</p>
-      </div>
-      <div className="feature">
-        <LogOut />
-        <h3>Save to Library</h3>
-        <p>Keep your favorites and revisit them anytime.</p>
-      </div>
-    </section>
-  </>
-);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const index = parseInt(entry.target.getAttribute('data-index') || '0');
+          
+          if (entry.isIntersecting) {
+            // Feature entering viewport
+            setVisibleFeatures(prev => new Set([...prev, index]));
+            // Clear leaving state
+            if (timeoutRefs.current.has(index)) {
+              clearTimeout(timeoutRefs.current.get(index)!);
+              timeoutRefs.current.delete(index);
+            }
+            setLeavingFeatures(prev => {
+              const updated = new Set(prev);
+              updated.delete(index);
+              return updated;
+            });
+          } else {
+            // Feature leaving viewport - trigger slide-out animation
+            setLeavingFeatures(prev => new Set([...prev, index]));
+            
+            // Remove from visible after animation
+            const timeout = setTimeout(() => {
+              setVisibleFeatures(prev => {
+                const updated = new Set(prev);
+                updated.delete(index);
+                return updated;
+              });
+              setLeavingFeatures(prev => {
+                const updated = new Set(prev);
+                updated.delete(index);
+                return updated;
+              });
+              timeoutRefs.current.delete(index);
+            }, 2000); // Match animation duration
+            
+            timeoutRefs.current.set(index, timeout);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    featureRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => {
+      featureRefs.current.forEach((ref) => {
+        if (ref) observer.unobserve(ref);
+      });
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current.clear();
+    };
+  }, []);
+
+  const features = [
+    { icon: Book, title: 'Generate Stories', desc: 'Create magical chapter-based adventures from any idea — dragons, robots, or talking samosas.' },
+    { icon: Sparkles, title: 'Read & Listen', desc: 'Enjoy illustrated story pages with optional narration designed for young readers.' },
+    { icon: Bookmark, title: 'Save to Library', desc: 'Keep your favourite stories and revisit them anytime across all your devices.' },
+    { icon: Zap, title: 'Feed Your Pet', desc: 'Your virtual companion Chotuu grows stronger and happier with every story you read.' },
+    { icon: TrendingUp, title: 'Build Streaks & Flex', desc: 'Track reading streaks, level up your pet, and show off achievements to friends.' },
+  ];
+
+  return (
+    <>
+      <LibraryDoors />
+
+      <h2 className="section-title">Why kids love Katha Kalpana</h2>
+
+      <section className="features-section">
+        {features.map((feature, index) => {
+          const IconComponent = feature.icon;
+          const isVisible = visibleFeatures.has(index);
+          const isLeaving = leavingFeatures.has(index);
+          const fromRight = index % 2 === 0;
+          
+          let animationClass = 'feature-hidden';
+          if (isLeaving) {
+            // Slide out in the direction they came from (alternating)
+            animationClass = fromRight ? 'slide-out-right' : 'slide-out-left';
+          } else if (isVisible) {
+            // Slide in from alternating directions
+            animationClass = fromRight ? 'slide-in-right' : 'slide-in-left';
+          }
+          
+          return (
+            <div
+              key={index}
+              ref={(el) => { featureRefs.current[index] = el; }}
+              data-index={index}
+              className={`feature ${animationClass}`}
+            >
+              <div className="feature-icon"><IconComponent size={24} /></div>
+              <div className="feature-text">
+                <h3>{feature.title}</h3>
+                <p>{feature.desc}</p>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </>
+  );
+};
 
 const LoadingSpinner = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
     <div style={{ textAlign: 'center' }}>
-      <div style={{ 
+      <div style={{
         display: 'inline-block',
-        width: '50px',
-        height: '50px',
-        border: '4px solid rgba(255, 107, 158, 0.2)',
-        borderTop: '4px solid #FF6B9E',
+        width: '48px',
+        height: '48px',
+        border: '3px solid rgba(255,95,160,0.15)',
+        borderTop: '3px solid #ff5fa0',
         borderRadius: '50%',
-        animation: 'spin 1s linear infinite'
+        animation: 'spin 0.8s linear infinite',
       }} />
-      <p style={{ color: '#888', marginTop: '12px', fontSize: '0.9em' }}>Loading...</p>
+      <p style={{ color: '#555', marginTop: '14px', fontSize: '0.88em' }}>Loading…</p>
     </div>
-    <style>{`
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
 );
 
@@ -212,19 +281,13 @@ const ConfigurationErrorScreen = ({ missingVars }: { missingVars: string[] }) =>
       <p className="config-error-eyebrow">Deployment configuration required</p>
       <h1>Frontend env vars are missing.</h1>
       <p>
-        Vite only exposes browser env vars that start with <code>VITE_</code>. Your Vercel build is missing the values below,
-        so the app cannot create the Supabase client.
+        Vite only exposes browser env vars that start with <code>VITE_</code>. Your Vercel build
+        is missing the values below, so the app cannot create the Supabase client.
       </p>
-
       <div className="config-error-list">
-        {missingVars.map((variableName) => (
-          <code key={variableName}>{variableName}</code>
-        ))}
+        {missingVars.map((v) => <code key={v}>{v}</code>)}
       </div>
-
-      <p>
-        Add them in Vercel Project Settings &gt; Environment Variables for the relevant environments, then redeploy.
-      </p>
+      <p>Add them in Vercel → Project Settings → Environment Variables, then redeploy.</p>
     </section>
   </div>
 );

@@ -65,10 +65,9 @@ const PetDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-8 bg-brand-card rounded-[2rem] border border-neutral-800 shadow-2xl relative overflow-hidden group">
+    <div className="pet-dashboard-container">
       
       {/* 🟢 Background Glow Decoration */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-purple/20 blur-3xl rounded-full group-hover:bg-brand-pink/30 transition-all duration-700"></div>
 
       {/* 🐲 THE FLOATING PET AREA */}
       <div className="flex flex-col items-center gap-6 relative z-10">
@@ -123,7 +122,7 @@ const PetDashboard: React.FC = () => {
       <div className="mt-8 flex justify-center">
          <button
            onClick={fireConfetti}
-           className="flex items-center gap-2 text-xs font-bold text-neutral-500 hover:text-white transition-colors"
+           className="flex items-center gap-2 text-xs font-bold text-white hover:text-white transition-colors"
          >
            <Sparkles size={14} /> View Chotuu's Gallery
          </button>
