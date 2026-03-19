@@ -8,12 +8,25 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-core': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['lucide-react', '@lottiefiles/dotlottie-react'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-axios': ['axios'],
-          'vendor-other': ['canvas-confetti'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react')) {
+              return 'vendor-core';
+            }
+            if (id.includes('lucide-react') || id.includes('dotlottie-react')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('axios')) {
+              return 'vendor-axios';
+            }
+            if (id.includes('canvas-confetti')) {
+              return 'vendor-other';
+            }
+            return 'vendor-other';
+          }
         },
       },
     },
