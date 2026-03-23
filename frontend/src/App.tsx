@@ -4,11 +4,11 @@ import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark } from 'lucide-react'
 import './App.css';
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import type { ReactNode } from 'react';
 
 import Login from './components/Login';
-import LibraryDoors from './components/LibraryDoors';
+import TitleContainer from './components/TitleContainer';
 
-// Lazy load components for better code splitting
 const Library = React.lazy(() => import('./components/Library'));
 const StoryGenerator = React.lazy(() => import('./components/StoryGenerator'));
 const StoryReader = React.lazy(() => import('./components/StoryReader'));
@@ -18,6 +18,8 @@ const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
+  // Critical: Initializes user session and subscribes to auth changes. The 'mounted' flag prevents state updates
+  // after component unmount, avoiding memory leaks. Essential for persisting user login across page reloads.
   useEffect(() => {
     let mounted = true;
 
@@ -56,6 +58,8 @@ const App: React.FC = () => {
   const handleLogin = (nextSession: Session | null) => setSession(nextSession);
   const handleLogout = () => requireSupabaseClient().auth.signOut();
 
+  // Important: Prevents unauthenticated users from accessing protected pages. Checks authReady to avoid
+  // premature redirects while session initialization is in progress.
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!authReady) return null;
     if (!session) return <Navigate to="/login" replace />;
@@ -147,18 +151,18 @@ const HomePage = () => {
   const [visibleFeatures, setVisibleFeatures] = useState<Set<number>>(new Set());
   const [leavingFeatures, setLeavingFeatures] = useState<Set<number>>(new Set());
   const featureRefs = React.useRef<(HTMLDivElement | null)[]>([]);
-  const timeoutRefs = React.useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const timeoutRefs = React.useRef<Map<number, NodeJS.Timeout | ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
+    // Critical for animations: IntersectionObserver tracks which features are in viewport and manages animation states.
+    // Timing-based removal (2000ms) prevents flickering by canceling timeouts if elements re-enter before animation ends.
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const index = parseInt(entry.target.getAttribute('data-index') || '0');
           
           if (entry.isIntersecting) {
-            // Feature entering viewport
             setVisibleFeatures(prev => new Set([...prev, index]));
-            // Clear leaving state
             if (timeoutRefs.current.has(index)) {
               clearTimeout(timeoutRefs.current.get(index)!);
               timeoutRefs.current.delete(index);
@@ -169,10 +173,8 @@ const HomePage = () => {
               return updated;
             });
           } else {
-            // Feature leaving viewport - trigger slide-out animation
             setLeavingFeatures(prev => new Set([...prev, index]));
             
-            // Remove from visible after animation
             const timeout = setTimeout(() => {
               setVisibleFeatures(prev => {
                 const updated = new Set(prev);
@@ -185,7 +187,7 @@ const HomePage = () => {
                 return updated;
               });
               timeoutRefs.current.delete(index);
-            }, 2000); // Match animation duration
+            }, 2000);
             
             timeoutRefs.current.set(index, timeout);
           }
@@ -217,7 +219,7 @@ const HomePage = () => {
 
   return (
     <>
-      <LibraryDoors />
+      <TitleContainer />
 
       <h2 className="section-title">Why kids love Katha Kalpana</h2>
 
@@ -230,10 +232,8 @@ const HomePage = () => {
           
           let animationClass = 'feature-hidden';
           if (isLeaving) {
-            // Slide out in the direction they came from (alternating)
             animationClass = fromRight ? 'slide-out-right' : 'slide-out-left';
           } else if (isVisible) {
-            // Slide in from alternating directions
             animationClass = fromRight ? 'slide-in-right' : 'slide-in-left';
           }
           

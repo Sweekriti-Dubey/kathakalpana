@@ -16,6 +16,8 @@ function Login({ onLogin }) {
 
   const client = useMemo(() => requireSupabaseClient(), []);
 
+  // Important: Handles password recovery flows both from URL params and auth state changes.
+  // Detects recovery links and PASSWORD_RECOVERY events to automatically navigate to reset view.
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -42,6 +44,8 @@ function Login({ onLogin }) {
     };
   }, [client]);
 
+  // Important: Enforces password security standards (6+ chars, uppercase, lowercase, special char).
+  // Prevents weak passwords that increase account compromise risk and improves user safety.
   const validatePassword = (value) => {
     if (value.length < 6) return 'Password must be at least 6 characters long.';
     if (!/[A-Z]/.test(value)) return 'Password must include at least one uppercase letter.';
@@ -55,6 +59,9 @@ function Login({ onLogin }) {
     setSuccess('');
   };
 
+  // Critical: Multi-step auth flow handler supporting login, signup, password reset, and password change.
+  // Integrates with Supabase Auth for secure credential management. Handles different flows based on view state
+  // to guide users through appropriate authentication steps with clear success/error messaging.
   const handleSubmit = async (e) => {
     e.preventDefault();
     resetMessages();

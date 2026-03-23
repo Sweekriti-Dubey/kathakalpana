@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Sparkles, Trophy, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PetStatus } from '../types';
-import { supabase } from '../lib/supabaseClient';
+import { requireSupabaseClient } from '../lib/supabaseClient';
 
 const PetDashboard: React.FC = () => {
   const [pet, setPet] = useState<PetStatus | null>(null);
@@ -11,6 +11,8 @@ const PetDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const hasCelebratedAdult = useRef(false);
 
+  // Important: Triggers celebratory animation when pet evolves to adult stage. Uses canvas-confetti for engaging
+  // visual feedback that reinforces achievement and motivates continued story reading to reach evolution milestones.
   const fireConfetti = useCallback(() => {
     confetti({
       particleCount: 90,
@@ -31,7 +33,8 @@ const PetDashboard: React.FC = () => {
 
       try {
         const statusUrl = `${functionsBaseUrl}/pet-status`;
-        const { data } = await supabase.auth.getSession();
+        const supabaseClient = requireSupabaseClient();
+        const { data } = await supabaseClient.auth.getSession();
         const token = data.session?.access_token ?? '';
         const res = await axios.get(statusUrl, {
           headers: { Authorization: `Bearer ${token}` }
@@ -47,6 +50,8 @@ const PetDashboard: React.FC = () => {
     fetchPet();
   }, []);
 
+  // Critical: One-time celebration trigger for reaching adult evolution. Prevents duplicate celebrations via ref flag
+  // even if component re-renders, ensuring confetti fires exactly once when milestone is achieved.
   useEffect(() => {
     if (pet?.evolution_stage === 'adult' && !hasCelebratedAdult.current) {
       fireConfetti();
@@ -57,7 +62,6 @@ const PetDashboard: React.FC = () => {
   if (loading) return <div className="text-center py-10 animate-pulse text-brand-purple">Finding Chotuu...</div>;
   if (error) return <div className="text-center py-10 text-red-400">{error}</div>;
 
-  // Helper to show the right emoji/asset based on evolution
   const getPetVisual = () => {
     if (pet?.evolution_stage === 'adult') return "🐉";
     if (pet?.evolution_stage === 'hatchling') return "🐥";
@@ -67,9 +71,7 @@ const PetDashboard: React.FC = () => {
   return (
     <div className="pet-dashboard-container">
       
-      {/* 🟢 Background Glow Decoration */}
-
-      {/* 🐲 THE FLOATING PET AREA */}
+    
       <div className="flex flex-col items-center gap-6 relative z-10">
         <div className="animate-float">
           <div className="text-8xl drop-shadow-glow-purple filter saturate-150">
@@ -87,7 +89,6 @@ const PetDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 📊 STATS GRID */}
       <div className="grid grid-cols-2 gap-4 mt-8">
         <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
           <Trophy className="text-yellow-500" size={20} />
@@ -105,16 +106,15 @@ const PetDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 📉 PROGRESS BAR (XP to Next Level) */}
       <div className="mt-8 space-y-2">
         <div className="flex justify-between text-xs font-bold">
           <span className="text-neutral-400">Progress to Level {Number(pet?.level || 1) + 1}</span>
-          <span className="text-brand-pink">{(pet?.xp || 0) % 100}%</span>
+          <span className="text-brand-pink">{Math.min(((pet?.level || 1) - 1) * 20 + ((pet?.xp || 0) % 100) / 5, 100).toFixed(0)}%</span>
         </div>
         <div className="w-full bg-neutral-800 h-3 rounded-full overflow-hidden p-[2px]">
           <div 
             className="h-full bg-gradient-to-r from-brand-purple to-brand-pink rounded-full transition-all duration-1000 shadow-glow-pink"
-            style={{ width: `${(pet?.xp || 0) % 100}%` }}
+            style={{ width: `${Math.min(((pet?.level || 1) - 1) * 20 + ((pet?.xp || 0) % 100) / 5, 100)}%` }}
           />
         </div>
       </div>

@@ -17,6 +17,9 @@ function Library() {
     fetchLibrary();
   }, []);
 
+  // Critical: Fetches and normalizes user's saved stories from backend. Handles two response formats
+  // (nested content or flat structure) to support backend variations. Data normalization ensures
+  // consistent display of stories regardless of API response format changes.
   const fetchLibrary = async () => {
     if (!functionsBaseUrl) {
       setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');

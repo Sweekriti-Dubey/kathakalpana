@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ChevronRight, ChevronLeft, CheckCircle, Sparkles, Play, Square, Save } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CheckCircle, Play, Square, Save, Maximize2, X } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { PetStatus, Story } from '../types';
 import { requireSupabaseClient } from '../lib/supabaseClient';
@@ -21,6 +21,7 @@ const StoryReader: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFoodFeeding, setShowFoodFeeding] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
+  const [isFullView, setIsFullView] = useState(false);
   const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
   const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
   const completeUrl = `${functionsBaseUrl}/complete-reading`;
@@ -34,7 +35,6 @@ const StoryReader: React.FC = () => {
     { id: 'apple', name: 'Apple 🍎', image: '/assets/food/apple.jpeg' }
   ];
 
-  // Stop audio playback on component unmount or navigation
   React.useEffect(() => {
     const stopAudio = () => {
       window.speechSynthesis.cancel();
@@ -57,6 +57,14 @@ const StoryReader: React.FC = () => {
     };
   }, []);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullView) setIsFullView(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullView]);
+
   if (!story) {
     navigate('/library');
     return null;
@@ -78,6 +86,8 @@ const StoryReader: React.FC = () => {
     }
   };
 
+  // Critical: Ensures valid tokens for all API requests. Checks JWT expiry and refreshes if<60s remaining.
+  // Prevents silent auth failures mid-reading and ensures pet growth updates don't fail due to token expiry.
   const getAccessToken = async () => {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) throw sessionError;
@@ -96,6 +106,8 @@ const StoryReader: React.FC = () => {
 
     if (!token) throw new Error('Session expired. Please log in again.');
     return token;
+  // Important: Uses Web Speech API for text-to-speech narration. Rate/pitch tuning (0.95/1.05) ensures
+  // natural, engaging audio for young readers. Cleanup callbacks prevent state updates if component unmounts during speech.
   };
 
   const toggleNarration = () => {
@@ -120,6 +132,8 @@ const StoryReader: React.FC = () => {
     };
     setIsPlaying(true);
     window.speechSynthesis.speak(utterance);
+  // Critical: Persists generated stories to library for later access. Enables reading history and favorites.
+  // Uses Supabase auth middleware to attach story to authenticated user's account.
   };
 
   const saveStory = async () => {
@@ -151,10 +165,15 @@ const StoryReader: React.FC = () => {
     }
   };
 
+  // Important: Triggers pet growth interaction when user completes story. Opens food feeding modal
+  // which allows users to "feed" their pet and trigger evolution animations.
   const handleFinish = async () => {
     setShowFoodFeeding(true);
   };
 
+  // Critical: Core engagement mechanic. Records reading completion and pet feeding choice via backend,
+  // then fetches updated pet stats (level, XP, evolution stage) to show growth achievements.
+  // Motivates repeat story reads by showing immediate pet progression and evolution milestones.
   const handleFoodSelected = async (foodId: string) => {
     setSelectedFood(foodId);
     if (!functionsBaseUrl) {
@@ -194,10 +213,149 @@ const StoryReader: React.FC = () => {
     }
   };
 
+  const ChapterContent = ({ inFullView = false }: { inFullView?: boolean }) => (
+    <div
+      key={currentPage}
+      className={`bg-neutral-900/50 border border-neutral-800 rounded-3xl shadow-2xl backdrop-blur-sm transition-all duration-500 ease-out animate-in ${flipDirection === 'next' ? 'fade-in slide-in-from-right-4' : 'fade-in slide-in-from-left-4'}`}
+      style={{
+        height: '100%',
+        overflow: 'auto',
+        padding: inFullView ? '32px 40px' : '24px 32px',
+        position: 'relative',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setIsFullView(!inFullView)}
+        title={inFullView ? 'Exit full view' : 'Full view'}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          background: 'rgba(255,255,255,0.07)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '10px',
+          padding: '7px 9px',
+          cursor: 'pointer',
+          color: '#a78bfa',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          fontSize: '0.78em',
+          fontWeight: 600,
+          transition: 'background 0.2s',
+          zIndex: 10,
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(167,139,250,0.15)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+      >
+        {inFullView ? <X size={15} /> : <Maximize2 size={15} />}
+        {inFullView ? 'Exit' : 'Full View'}
+      </button>
+
+      <div className="space-y-4">
+        <span className="text-purple-400 font-bold tracking-widest uppercase text-sm">
+          Chapter {currentPage + 1}
+        </span>
+        {story.chapters[currentPage].image_url && (
+          <img
+            src={story.chapters[currentPage].image_url}
+            alt={`${story.chapters[currentPage].title} illustration`}
+            className="w-full rounded-2xl border border-neutral-800"
+            style={{ maxHeight: inFullView ? '55vh' : '58vh', objectFit: 'contain' }}
+          />
+        )}
+        <h2 className={`font-extrabold text-white leading-tight ${inFullView ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`}>
+          {story.chapters[currentPage].title}
+        </h2>
+        <p className={`text-neutral-300 leading-relaxed font-light ${inFullView ? 'text-lg md:text-xl' : 'text-base md:text-lg'}`}>
+          {story.chapters[currentPage].content}
+        </p>
+        {currentPage === totalChapters - 1 && (
+          <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid rgba(167, 139, 250, 0.2)' }}>
+            <p className="text-purple-300 italic font-medium text-center" style={{ fontSize: inFullView ? '1.1em' : '0.95em' }}>"{story.moral}"</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-5xl mx-auto animate-in fade-in duration-700" style={{ height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column', gap: '10px', overflow: 'hidden' }}>
+    <>
+      {isFullView && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setIsFullView(false); }}
+        >
+          <div
+            style={{
+              width: '90vw',
+              height: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            <div style={{ flex: 1, minHeight: 0, position: 'relative', perspective: '1600px' }}>
+              <ChapterContent inFullView={true} />
+            </div>
+
+            <div className="flex items-center justify-between" style={{ background: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(8px)', padding: '8px 0 10px', borderRadius: '16px', paddingLeft: '16px', paddingRight: '16px' }}>
+              <button
+                disabled={currentPage === 0}
+                onClick={() => changePage('prev')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft /> Previous
+              </button>
+
+              <div className="text-neutral-500 text-sm">
+                {currentPage + 1} of {totalChapters}
+              </div>
+
+              {currentPage < totalChapters - 1 ? (
+                <button
+                  onClick={() => changePage('next')}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all shadow-lg shadow-purple-500/20"
+                >
+                  Next <ChevronRight />
+                </button>
+              ) : (
+                <button
+                  onClick={handleFinish}
+                  disabled={loading || Boolean(petGrowth)}
+                  className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold animate-pulse shadow-lg shadow-green-500/20"
+                >
+                  {loading ? 'Finishing...' : petGrowth ? 'Finished' : 'Finish'} <CheckCircle />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="max-w-5xl mx-auto animate-in fade-in duration-700"
+        style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', gap: '10px', overflow: 'hidden' }}
+      >
       
-      {/* Progress Bar Container */}
       <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
         <div 
           className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-500 ease-out"
@@ -206,96 +364,72 @@ const StoryReader: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-end gap-2" style={{ flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={toggleNarration}
-          className={`audio-btn ${isPlaying ? 'playing' : ''}`}
-          style={{ marginTop: 0, minWidth: 'auto', padding: '10px 16px' }}
-        >
-          {isPlaying ? <Square size={16} /> : <Play size={16} />}
-          {isPlaying ? 'Stop Audio' : 'Play Audio'}
-        </button>
-        <button
-          type="button"
-          onClick={saveStory}
-          disabled={saving || saved}
-          style={{ marginTop: 0, minWidth: 'auto', padding: '10px 16px' }}
-        >
-          <Save size={16} style={{ marginRight: 8 }} />
-          {saved ? 'Saved' : saving ? 'Saving...' : 'Save to Library'}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={toggleNarration}
+            className={`audio-btn ${isPlaying ? 'playing' : ''}`}
+            style={{ marginTop: 0, minWidth: 'auto', padding: '10px 16px' }}
+          >
+            {isPlaying ? <Square size={16} /> : <Play size={16} />}
+            {isPlaying ? 'Stop Audio' : 'Play Audio'}
+          </button>
+          <button
+            type="button"
+            onClick={saveStory}
+            disabled={saving || saved}
+            style={{ marginTop: 0, minWidth: 'auto', padding: '10px 16px' }}
+          >
+            <Save size={16} style={{ marginRight: 8 }} />
+            {saved ? 'Saved' : saving ? 'Saving...' : 'Save to Library'}
+          </button>
+        </div>
 
-      {/* Flip Book Chapter Card */}
-      <div className="relative" style={{ perspective: '1600px', flex: 1, minHeight: 0 }}>
-        <div className="absolute inset-y-4 -left-1 w-6 rounded-l-2xl bg-black/30 blur-sm" />
-        <div className="absolute inset-y-4 -right-1 w-6 rounded-r-2xl bg-black/30 blur-sm" />
+        <div className="relative" style={{ perspective: '1600px', flex: 1, minHeight: 0 }}>
+          <div className="absolute inset-y-4 -left-1 w-6 rounded-l-2xl bg-black/30 blur-sm" />
+          <div className="absolute inset-y-4 -right-1 w-6 rounded-r-2xl bg-black/30 blur-sm" />
+          <ChapterContent inFullView={false} />
+        </div>
 
         <div
-          key={currentPage}
-          className={`bg-neutral-900/50 border border-neutral-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-sm transition-all duration-500 ease-out animate-in ${flipDirection === 'next' ? 'fade-in slide-in-from-right-4' : 'fade-in slide-in-from-left-4'}`}
-          style={{ height: '100%', overflow: 'auto' }}
+          className="flex items-center justify-between"
+          style={{ background: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(8px)', padding: '8px 0 10px', zIndex: 5 }}
         >
-          <div className="space-y-4">
-            <span className="text-purple-400 font-bold tracking-widest uppercase text-sm">
-              Chapter {currentPage + 1}
-            </span>
-            {story.chapters[currentPage].image_url && (
-              <img
-                src={story.chapters[currentPage].image_url}
-                alt={`${story.chapters[currentPage].title} illustration`}
-                className="w-full rounded-2xl border border-neutral-800"
-                style={{ maxHeight: '36vh', objectFit: 'contain' }}
-              />
-            )}
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight">
-              {story.chapters[currentPage].title}
-            </h2>
-            <p className="text-base md:text-lg text-neutral-300 leading-relaxed font-light">
-              {story.chapters[currentPage].content}
-            </p>
+          <button
+            disabled={currentPage === 0}
+            onClick={() => changePage('prev')}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft /> Previous
+          </button>
+
+          <div className="text-neutral-500 text-sm">
+            {currentPage + 1} of {totalChapters}
           </div>
+
+          {currentPage < totalChapters - 1 ? (
+            <button
+              onClick={() => changePage('next')}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all shadow-lg shadow-purple-500/20"
+            >
+              Next <ChevronRight />
+            </button>
+          ) : (
+            <button
+              onClick={handleFinish}
+              disabled={loading || Boolean(petGrowth)}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold animate-pulse shadow-lg shadow-green-500/20"
+            >
+              {loading ? 'Finishing...' : petGrowth ? 'Finished' : 'Finish'} <CheckCircle />
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Navigation Controls */}
-      <div className="flex items-center justify-between" style={{ background: 'rgba(18,18,18,0.92)', backdropFilter: 'blur(8px)', padding: '8px 0 10px', zIndex: 5 }}>
-        <button 
-          disabled={currentPage === 0} 
-          onClick={() => changePage('prev')}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-        >
-          <ChevronLeft /> Previous
-        </button>
-
-        <div className="text-neutral-500 text-sm">
-          {currentPage + 1} of {totalChapters}
-        </div>
-
-        {currentPage < totalChapters - 1 ? (
-          <button 
-            onClick={() => changePage('next')}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all shadow-lg shadow-purple-500/20"
-          >
-            Next <ChevronRight />
-          </button>
-        ) : (
-          <button 
-            onClick={handleFinish}
-            disabled={loading || Boolean(petGrowth)}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold animate-pulse shadow-lg shadow-green-500/20"
-          >
-            {loading ? 'Finishing...' : petGrowth ? 'Finished' : 'Finish'} <CheckCircle />
-          </button>
+        {error && (
+          <div className="text-center text-red-400 text-sm">{error}</div>
         )}
       </div>
-
-      {error && (
-        <div className="text-center text-red-400 text-sm">{error}</div>
-      )}
-
       {petGrowth && (
-        <div style={{ position: 'fixed', right: '40px', bottom: '40px', zIndex: 50, maxWidth: '400px' }}>
+        <div style={{ position: 'fixed', right: '40px', bottom: '40px', zIndex: 250, maxWidth: '400px' }}>
           <div style={{
             background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))',
             border: '2px solid rgba(34, 197, 94, 0.5)',
@@ -349,15 +483,8 @@ const StoryReader: React.FC = () => {
         </div>
       )}
 
-      {/* Moral Section (Fixed overlay at bottom center - only shown on last page) */}
-      {currentPage === totalChapters - 1 && (
-        <div className="max-w-md bg-purple-950/90 border border-purple-500/40 rounded-2xl p-4 flex flex-col items-center gap-2" style={{ position: 'fixed', left: '50%', bottom: '24px', transform: 'translateX(-50%)', zIndex: 40 }}>
-          <Sparkles className="text-purple-400" size={18} />
-          <p className="text-purple-200 italic font-medium text-sm text-center">"{story.moral}"</p>
-        </div>
-      )}
 
-      {/* Food Feeding Modal */}
+
       {showFoodFeeding && (
         <div style={{
           position: 'fixed',
@@ -437,6 +564,7 @@ const StoryReader: React.FC = () => {
                   <img
                     src={food.image}
                     alt={food.name}
+                    loading="lazy"
                     style={{
                       width: '100%',
                       height: '80px',
@@ -484,7 +612,7 @@ const StoryReader: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

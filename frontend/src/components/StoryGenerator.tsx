@@ -35,6 +35,8 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const [useSampleImages, setUseSampleImages] = useState(true);
 	const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null);
 
+	// Important: Decodes JWT to check expiration time. Prevents API failures by detecting stale tokens
+	// before making requests, reducing unnecessary network calls and improving UX.
 	const getTokenExpiry = (jwt: string): number | null => {
 		try {
 			const payload = jwt.split('.')[1];
@@ -47,6 +49,8 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		}
 	};
 
+	// Critical: Ensures API requests always use valid tokens. Automatically refreshes tokens expiring within 60s,
+	// preventing failed API calls mid-story generation. Falls back to passed token if session refresh fails.
 	const getAccessToken = async () => {
 		const fallback = token?.trim();
 		const { data, error } = await supabase.auth.getSession();
@@ -97,8 +101,10 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 			const contentType = res.headers.get('content-type') || '';
 
-			if (contentType.includes('application/x-ndjson')) {
-				// Streaming response: text first, then images progressively
+	// Critical: Handles streaming story generation using NDJSON (newline-delimited JSON).
+	// Processes story text first, then updates each chapter's image progressively as they generate.
+	// This real-time feedback prevents UX timeouts for long-running image generation (up to 10 chapters).
+				if (contentType.includes('application/x-ndjson')) {
 				const reader = res.body!.getReader();
 				const decoder = new TextDecoder();
 				let buffer = '';
@@ -137,7 +143,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 					navigate('/read', { state: { story: streamStory } });
 				}
 			} else {
-				// Non-streaming JSON response (sample images)
 				const data = await res.json();
 				navigate('/read', { state: { story: data } });
 			}
@@ -152,7 +157,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 	return (
 		<section className="story-generator">
-			<h2>✨ Create a New Story</h2>
+			<h2> Create a New Story</h2>
 
 			<div className="genre-input-section">
 				<input
