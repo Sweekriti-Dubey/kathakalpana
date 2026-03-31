@@ -11,6 +11,7 @@ function Login({ onLogin }) {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const inputStyle = { padding: '10px', borderRadius: '5px', color: 'black', backgroundColor: 'white', border: '1px solid #ccc' };
 
   const passwordHint = 'Use at least 6 characters, including one uppercase letter, one lowercase letter, and one special character.';
 
@@ -155,7 +156,7 @@ function Login({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ padding: '10px', borderRadius: '5px' }}
+              style={inputStyle}
             />
           )}
 
@@ -166,7 +167,7 @@ function Login({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ padding: '10px', borderRadius: '5px' }}
+              style={inputStyle}
             />
           )}
 
@@ -178,7 +179,7 @@ function Login({ onLogin }) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                style={{ padding: '10px', borderRadius: '5px' }}
+                style={inputStyle}
               />
               <p style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '-6px' }}>{passwordHint}</p>
             </>
