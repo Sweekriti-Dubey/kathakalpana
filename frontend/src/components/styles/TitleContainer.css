@@ -1,0 +1,350 @@
+/* Cloud animations */
+@keyframes cloudBob1 {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+
+@keyframes cloudBob2 {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(12px); }
+}
+
+@keyframes cloudBob3 {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-16px); }
+}
+
+@keyframes cloudBob4 {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(10px); }
+}
+
+@keyframes cloudBob5 {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+@keyframes cloudBob6 {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(15px); }
+}
+
+
+.title-container-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 60px 20px 40px 20px;
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+
+.navbar-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 250px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.navbar-cloud {
+  position: absolute;
+  pointer-events: none;
+  filter: brightness(1.1);
+}
+
+/* Cloud 1 — large, left */
+.navbar-cloud:nth-child(1) {
+  width: 140px;
+  top: 25px;
+  left: 2%;
+  opacity: 0.8;
+  animation: cloudBob1 3s ease-in-out infinite;
+}
+
+/* Cloud 2 — medium, left-center */
+.navbar-cloud:nth-child(2) {
+  width: 100px;
+  top: -18px;
+  left: 18%;
+  opacity: 0.65;
+  animation: cloudBob2 4s ease-in-out infinite;
+}
+
+/* Cloud 3 — large, center */
+.navbar-cloud:nth-child(3) {
+  width: 160px;
+  top: -0.5px;
+  left: 35%;
+  opacity: 0.75;
+  animation: cloudBob3 3.5s ease-in-out infinite;
+}
+
+/* Cloud 4 — small, center-right */
+.navbar-cloud:nth-child(4) {
+  width: 90px;
+  top: -5px;
+  left: 55%;
+  opacity: 0.7;
+  animation: cloudBob4 4.5s ease-in-out infinite;
+}
+
+/* Cloud 5 — large, right */
+.navbar-cloud:nth-child(5) {
+  width: 130px;
+  top: 20px;
+  left: 70%;
+  opacity: 0.6;
+  animation: cloudBob5 3.8s ease-in-out infinite;
+}
+
+/* Cloud 6 — medium, far right */
+.navbar-cloud:nth-child(6) {
+  width: 110px;
+  top: -10px;
+  left: 88%;
+  opacity: 0.72;
+  animation: cloudBob6 5s ease-in-out infinite;
+}
+
+
+
+.title-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4em;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+  background: linear-gradient(135deg, #fff 0%, #c4b5fd 50%, #ff5fa0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: slideInDown 0.8s ease-out 0.2s both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+
+  .title {
+    font-size: 2em;
+  }
+
+  .subtitle {
+    font-size: 1em;
+  }
+}
+
+/** Rickshaw Container **/
+.rickshaw-hero {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  min-height: 400px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.rickshaw-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Phase : Enter */
+.rickshaw-enter {
+  animation: slideInFromLeft 3.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Phase: Idle */
+.rickshaw-idle {
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+/* Phase : Exit */
+.rickshaw-exit {
+  animation: slideOutToRight 3s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+/* Phase: Done */
+.rickshaw-done {
+  display: none;
+}
+
+.rickshaw-cta {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 32px;
+  border-radius: 100px;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1em;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  animation: ctaPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform 0.25s, box-shadow 0.25s;
+  white-space: nowrap;
+  z-index: 10;
+  min-width: unset;
+  margin-top: 0;
+}
+.rickshaw-cta:hover {
+  transform: translateX(-50%) translateY(-3px) scale(1.06);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-120vw);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120vw);
+    opacity: 0;
+  }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes ctaPopIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .rickshaw-hero {
+    min-height: 300px;
+  }
+  .rickshaw-wrapper dotlottie-player,
+  .rickshaw-wrapper canvas {
+    width: 220px !important;
+    height: 220px !important;
+  }
+  .rickshaw-cta {
+    padding: 10px 24px;
+    font-size: 0.9em;
+    bottom: 20px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHT MODE SUPPORT
+   ═══════════════════════════════════════════════════════════ */
+
+html[data-theme='light'] .rickshaw-hero {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(124, 58, 237, 0.05));
+}
+
+html[data-theme='light'] .title {
+  background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html[data-theme='light'] .navbar-cloud {
+  filter: brightness(0.9) saturate(1.2);
+  opacity: 0.7;
+}
+
+html[data-theme='light'] .rickshaw-wrapper {
+  filter: drop-shadow(0 10px 20px rgba(124, 58, 237, 0.1));
+}
+
+html[data-theme='light'] .rickshaw-cta {
+  background: linear-gradient(135deg, #7c3aed, #3b82f6) !important;
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3) !important;
+}
+

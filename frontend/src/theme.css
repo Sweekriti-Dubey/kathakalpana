@@ -1,0 +1,49 @@
+/* Theme CSS Variables - Light & Dark Mode Support */
+/* Using RGB format for Tailwind opacity modifier support */
+
+:root {
+  /* Dark Mode (Default) */
+  --app-bg: 11 11 18;                    /* #0b0b12 */
+  --app-surface: 19 19 31;               /* #13131f */
+  --app-surface-2: 26 26 46;             /* #1a1a2e */
+  --app-border: rgba(255,255,255,0.07);
+  --app-text: 232 230 240;               /* #e8e6f0 */
+  --app-muted: 122 120 138;              /* #7a788a */
+  
+  --app-pink: 255 95 160;                /* #ff5fa0 */
+  --app-violet: 139 92 246;              /* #8b5cf6 */
+  --app-cyan: 34 211 238;                /* #22d3ee */
+  --app-gold: 251 191 36;                /* #fbbf24 */
+  --app-green: 74 222 128;               /* #4ade80 */
+}
+
+html[data-theme='light'] {
+  --app-bg: 249 246 240;
+  --app-surface: 242 238 230;
+  --app-surface-2: 236 231 221;
+  --app-border: rgba(139, 115, 85, 0.15);
+  --app-text: 61 52 43;
+  --app-muted: 115 106 97;
+  
+  --app-pink: 236 72 153;
+  --app-violet: 124 58 237;
+  --app-cyan: 8 145 178;
+  --app-gold: 217 119 6;
+  --app-green: 34 197 94;
+}
+
+/* Apply theme to all elements */
+body,
+html {
+  background-color: rgb(var(--app-bg));
+  color: rgb(var(--app-text));
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Override for elements that shouldn't transition smoothly */
+.app-container,
+nav,
+main,
+footer {
+  transition: none;
+}

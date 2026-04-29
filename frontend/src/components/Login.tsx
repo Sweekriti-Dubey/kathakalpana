@@ -1,15 +1,21 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requireSupabaseClient } from '../lib/supabaseClient';
 
-function Login({ onLogin }) {
-  const [view, setView] = useState('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+interface LoginProps {
+  onLogin: (session: any) => void;
+}
+
+type AuthView = 'login' | 'signup' | 'forgot' | 'reset';
+
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const [view, setView] = useState<AuthView>('login');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
   const inputStyle = { padding: '10px', borderRadius: '5px', color: 'black', backgroundColor: 'white', border: '1px solid #ccc' };
 
@@ -32,7 +38,7 @@ function Login({ onLogin }) {
       setError('');
     }
 
-    const { data: authListener } = client.auth.onAuthStateChange((event) => {
+    const { data: authListener } = client.auth.onAuthStateChange((event: string) => {
       if (event === 'PASSWORD_RECOVERY') {
         setView('reset');
         setSuccess('Recovery link verified. Set your new password below.');
@@ -47,7 +53,7 @@ function Login({ onLogin }) {
 
   // Important: Enforces password security standards (6+ chars, uppercase, lowercase, special char).
   // Prevents weak passwords that increase account compromise risk and improves user safety.
-  const validatePassword = (value) => {
+  const validatePassword = (value: string): string => {
     if (value.length < 6) return 'Password must be at least 6 characters long.';
     if (!/[A-Z]/.test(value)) return 'Password must include at least one uppercase letter.';
     if (!/[a-z]/.test(value)) return 'Password must include at least one lowercase letter.';
@@ -55,7 +61,7 @@ function Login({ onLogin }) {
     return '';
   };
 
-  const resetMessages = () => {
+  const resetMessages = (): void => {
     setError('');
     setSuccess('');
   };
@@ -63,7 +69,7 @@ function Login({ onLogin }) {
   // Critical: Multi-step auth flow handler supporting login, signup, password reset, and password change.
   // Integrates with Supabase Auth for secure credential management. Handles different flows based on view state
   // to guide users through appropriate authentication steps with clear success/error messaging.
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     resetMessages();
     setLoading(true);
@@ -114,7 +120,7 @@ function Login({ onLogin }) {
         setView('login');
         setSuccess('Password updated successfully. Please log in with your new password.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setError(err?.message || 'Authentication failed');
     } finally {
@@ -154,7 +160,7 @@ function Login({ onLogin }) {
               type="email"
               placeholder="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
               style={inputStyle}
             />
@@ -165,7 +171,7 @@ function Login({ onLogin }) {
               type="password"
               placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
               style={inputStyle}
             />
@@ -177,7 +183,7 @@ function Login({ onLogin }) {
                 type="password"
                 placeholder="Confirm Password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 required
                 style={inputStyle}
               />
@@ -244,6 +250,6 @@ function Login({ onLogin }) {
       </div>
     </div>
   );
-}
+};
 
 export default Login;

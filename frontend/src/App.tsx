@@ -1,10 +1,13 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark } from 'lucide-react';
+import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark} from 'lucide-react';
 import './App.css';
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
+import { ThemeProvider } from './contexts/ThemeContext';
+import ThemeToggle from './components/ThemeToggle';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
+
 
 import Login from './components/Login';
 import TitleContainer from './components/TitleContainer';
@@ -18,8 +21,7 @@ const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
-  // Critical: Initializes user session and subscribes to auth changes. The 'mounted' flag prevents state updates
-  // after component unmount, avoiding memory leaks. Essential for persisting user login across page reloads.
+  
   useEffect(() => {
     let mounted = true;
 
@@ -58,8 +60,7 @@ const App: React.FC = () => {
   const handleLogin = (nextSession: Session | null) => setSession(nextSession);
   const handleLogout = () => requireSupabaseClient().auth.signOut();
 
-  // Important: Prevents unauthenticated users from accessing protected pages. Checks authReady to avoid
-  // premature redirects while session initialization is in progress.
+  
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!authReady) return null;
     if (!session) return <Navigate to="/login" replace />;
@@ -71,79 +72,83 @@ const App: React.FC = () => {
   }
 
   return (
-    <Router>
-      <div className="app-container">
-        <nav className="navbar">
-          <h1 className="title">Katha Kalpana</h1>
-          <div className="nav-links">
-            <Link to="/">Home</Link>
-            {session && (
-              <>
-                <Link to="/generate">Create</Link>
-                <Link to="/library">Library</Link>
-                <Link to="/pet">Chotuu</Link>
-              </>
-            )}
-            {session ? (
-              <button onClick={handleLogout} className="logout-btn">
-                <LogOut size={15} /> Logout
-              </button>
-            ) : (
-              <Link to="/login">Login</Link>
-            )}
-          </div>
-        </nav>
+    <ThemeProvider>
+      <Router>
+        <div className="max-w-6xl mx-auto px-6 pt-5 pb-15 min-h-screen">
+          <nav className="flex justify-between items-center px-9 py-4 bg-app-surface/75 backdrop-blur-xl border border-app-border rounded-2xl mb-6 sticky top-4 z-50 shadow-2xl transition-colors md:flex-row flex-col">
+            <h1 className="title">Katha Kalpana</h1>
+            <div className="flex items-center gap-2">
+              <Link to="/" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Home</Link>
+              {session && (
+                <>
+                  <Link to="/generate" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Create</Link>
+                  <Link to="/library" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Library</Link>
+                  <Link to="/pet" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Chotuu</Link>
+                </>
+              )}
+              <ThemeToggle />
+              {session ? (
+                <button onClick={handleLogout} className="bg-app-pink/15 border border-app-pink/30 text-app-pink px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-app-pink/25 flex items-center gap-1.5">
+                  <LogOut size={15} /> Logout
+                </button>
+              ) : (
+                <Link to="/login">Login</Link>
+              )}
+            </div>
+          </nav>
+          
 
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route
-              path="/generate"
-              element={
-                <ProtectedRoute>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <StoryGenerator token={session?.access_token ?? ''} />
-                  </Suspense>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/library"
-              element={
-                <ProtectedRoute>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Library />
-                  </Suspense>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/read"
-              element={
-                <ProtectedRoute>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <StoryReader />
-                  </Suspense>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pet"
-              element={
-                <ProtectedRoute>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <PetDashboard />
-                  </Suspense>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </main>
+          <main>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<Login onLogin={handleLogin} />} />
+              <Route
+                path="/generate"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <StoryGenerator token={session?.access_token ?? ''} />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/library"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Library />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/read"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <StoryReader />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pet"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <PetDashboard />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </main>
 
-        <footer className="app-footer">Made with ❤ for little storytellers</footer>
-      </div>
-    </Router>
+          <footer className="text-center p-6 mt-16 border-t border-app-border text-app-muted text-sm tracking-wide transition-colors">Made with ❤ for little storytellers</footer>
+        </div>
+      </Router>
+    </ThemeProvider>
   );
 };
 
@@ -151,11 +156,10 @@ const HomePage = () => {
   const [visibleFeatures, setVisibleFeatures] = useState<Set<number>>(new Set());
   const [leavingFeatures, setLeavingFeatures] = useState<Set<number>>(new Set());
   const featureRefs = React.useRef<(HTMLDivElement | null)[]>([]);
-  const timeoutRefs = React.useRef<Map<number, NodeJS.Timeout | ReturnType<typeof setTimeout>>>(new Map());
+  const timeoutRefs = React.useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
-    // Critical for animations: IntersectionObserver tracks which features are in viewport and manages animation states.
-    // Timing-based removal (2000ms) prevents flickering by canceling timeouts if elements re-enter before animation ends.
+    
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -221,9 +225,11 @@ const HomePage = () => {
     <>
       <TitleContainer />
 
-      <h2 className="section-title">Why kids love Katha Kalpana</h2>
+      <h2 style={{ fontSize: '2.4em', textAlign: 'center', marginBottom: '28px', marginTop: '48px' }}>
+        Why kids love Katha Kalpana
+      </h2>
 
-      <section className="features-section">
+      <section className="flex flex-col gap-4 max-w-3xl mx-auto mb-10">
         {features.map((feature, index) => {
           const IconComponent = feature.icon;
           const isVisible = visibleFeatures.has(index);
@@ -232,9 +238,9 @@ const HomePage = () => {
           
           let animationClass = 'feature-hidden';
           if (isLeaving) {
-            animationClass = fromRight ? 'slide-out-right' : 'slide-out-left';
+            animationClass = fromRight ? 'animate-scrollSlideOutRight' : 'animate-scrollSlideOutLeft';
           } else if (isVisible) {
-            animationClass = fromRight ? 'slide-in-right' : 'slide-in-left';
+            animationClass = fromRight ? 'animate-scrollSlideFromRight' : 'animate-scrollSlideFromLeft';
           }
           
           return (
@@ -242,12 +248,24 @@ const HomePage = () => {
               key={index}
               ref={(el) => { featureRefs.current[index] = el; }}
               data-index={index}
-              className={`feature ${animationClass}`}
+              className={`card-base flex items-center gap-6 px-8 py-12 text-left cursor-default hover:scale-101 ${animationClass}`}
+              style={{
+                backgroundColor: 'rgb(var(--app-surface))',
+              }}
             >
-              <div className="feature-icon"><IconComponent size={24} /></div>
-              <div className="feature-text">
-                <h3>{feature.title}</h3>
-                <p>{feature.desc}</p>
+              {/* Icon */}
+              <div className="flex-shrink-0 w-14 h-14 rounded-lg flex items-center justify-center border border-app-pink border-opacity-20 bg-app-pink bg-opacity-10">
+                <IconComponent size={24} className={`w-6 h-6 ${index === 0 ? 'text-app-pink' : index === 1 ? 'text-app-violet' : index === 2 ? 'text-app-cyan' : index === 3 ? 'text-app-gold' : 'text-app-green'}`} />
+              </div>
+              
+              {/* Text */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1.5 transition-colors hover:text-violet-300">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-app-muted leading-1.55">
+                  {feature.desc}
+                </p>
               </div>
             </div>
           );
@@ -276,18 +294,18 @@ const LoadingSpinner = () => (
 );
 
 const ConfigurationErrorScreen = ({ missingVars }: { missingVars: string[] }) => (
-  <div className="config-error-screen">
-    <section className="config-error-card">
-      <p className="config-error-eyebrow">Deployment configuration required</p>
-      <h1>Frontend env vars are missing.</h1>
-      <p>
+  <div className="min-h-screen grid place-items-center p-6">
+    <section className="w-full max-w-2xl p-10 rounded-3xl bg-app-surface border border-app-pink/30 shadow-2xl">
+      <p className="text-app-pink uppercase tracking-[0.16em] text-[0.76rem] font-semibold mb-3">Deployment configuration required</p>
+      <h1 className="font-playfair text-[clamp(1.8rem,4vw,2.6rem)] text-app-text mb-4">Frontend env vars are missing.</h1>
+      <p className="text-app-muted">
         Vite only exposes browser env vars that start with <code>VITE_</code>. Your Vercel build
         is missing the values below, so the app cannot create the Supabase client.
       </p>
-      <div className="config-error-list">
-        {missingVars.map((v) => <code key={v}>{v}</code>)}
+      <div className="flex flex-wrap gap-2.5 my-6">
+        {missingVars.map((v) => <code key={v} className="px-4 py-2.5 rounded-full bg-app-pink/10 border border-app-pink/25 text-app-pink text-sm">{v}</code>)}
       </div>
-      <p>Add them in Vercel → Project Settings → Environment Variables, then redeploy.</p>
+      <p className="text-app-muted">Add them in Vercel → Project Settings → Environment Variables, then redeploy.</p>
     </section>
   </div>
 );

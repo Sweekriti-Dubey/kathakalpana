@@ -69,9 +69,18 @@ const PetDashboard: React.FC = () => {
   };
 
   return (
-    <div className="pet-dashboard-container">
+    <div 
+      className="card-base relative max-w-2xl mx-auto my-10"
+      style={{
+        backgroundColor: 'rgb(var(--app-surface))',
+        padding: '48px 40px',
+      }}
+    >
+      {/* Gradient background */}
+      <div 
+        className="chotuu-gradient-overlay absolute inset-0 rounded-3xl pointer-events-none"
+      />
       
-    
       <div className="flex flex-col items-center gap-6 relative z-10">
         <div className="animate-float">
           <div className="text-8xl drop-shadow-glow-purple filter saturate-150">
@@ -90,14 +99,14 @@ const PetDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-8">
-        <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
+        <div className="pet-stat-card bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
           <Trophy className="text-yellow-500" size={20} />
           <div>
             <p className="text-[10px] text-neutral-500 uppercase font-bold">Level</p>
             <p className="text-xl font-bold text-white">{pet?.level}</p>
           </div>
         </div>
-        <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
+        <div className="pet-stat-card bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
           <Flame className="text-orange-500" size={20} />
           <div>
             <p className="text-[10px] text-neutral-500 uppercase font-bold">XP</p>
@@ -111,7 +120,7 @@ const PetDashboard: React.FC = () => {
           <span className="text-neutral-400">Progress to Level {Number(pet?.level || 1) + 1}</span>
           <span className="text-brand-pink">{Math.min(((pet?.level || 1) - 1) * 20 + ((pet?.xp || 0) % 100) / 5, 100).toFixed(0)}%</span>
         </div>
-        <div className="w-full bg-neutral-800 h-3 rounded-full overflow-hidden p-[2px]">
+        <div className="pet-xp-bar-bg w-full h-3 rounded-full overflow-hidden p-[2px]">
           <div 
             className="h-full bg-gradient-to-r from-brand-purple to-brand-pink rounded-full transition-all duration-1000 shadow-glow-pink"
             style={{ width: `${Math.min(((pet?.level || 1) - 1) * 20 + ((pet?.xp || 0) % 100) / 5, 100)}%` }}
@@ -122,7 +131,7 @@ const PetDashboard: React.FC = () => {
       <div className="mt-8 flex justify-center">
          <button
            onClick={fireConfetti}
-           className="flex items-center gap-2 text-xs font-bold text-white hover:text-white transition-colors"
+           className='button'
          >
            <Sparkles size={14} /> View Chotuu's Gallery
          </button>
