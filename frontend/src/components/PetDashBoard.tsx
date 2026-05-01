@@ -70,53 +70,53 @@ const PetDashboard: React.FC = () => {
 
   return (
     <div 
-      className="card-base relative max-w-2xl mx-auto my-10 bg-app-surface p-12"
+      className="card-base relative max-w-2xl mx-auto my-4 sm:my-6 md:my-10 bg-app-surface px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-12"
     >
       {/* Gradient background */}
       <div 
         className="chotuu-gradient-overlay absolute inset-0 rounded-3xl pointer-events-none"
       />
       
-      <div className="flex flex-col items-center gap-6 relative z-10">
+      <div className="flex flex-col items-center gap-4 sm:gap-6 relative z-10">
         <div className="animate-float">
-          <div className="text-8xl drop-shadow-glow-purple filter saturate-150">
+          <div className="text-6xl sm:text-7xl md:text-8xl drop-shadow-glow-purple filter saturate-150">
             {getPetVisual()}
           </div>
         </div>
         
         <div className="text-center">
-          <h2 className="text-3xl font-black text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
             {pet?.pet_name || "Chotuu"}
           </h2>
-          <span className="px-3 py-1 bg-brand-purple/20 text-brand-purple text-xs font-bold rounded-full uppercase tracking-widest border border-brand-purple/30">
+          <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-brand-purple/20 text-brand-purple text-[10px] sm:text-xs font-bold rounded-full uppercase tracking-widest border border-brand-purple/30">
             {pet?.evolution_stage} Stage
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mt-8">
-        <div className="pet-stat-card bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
-          <Trophy className="text-yellow-500" size={20} />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 mt-6 sm:mt-8">
+        <div className="pet-stat-card bg-neutral-900/50 p-2 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl border border-neutral-800 flex items-center gap-2 sm:gap-3">
+          <Trophy className="text-yellow-500 flex-shrink-0" size={16} />
           <div>
-            <p className="text-[10px] text-neutral-500 uppercase font-bold">Level</p>
-            <p className="text-xl font-bold text-white">{pet?.level}</p>
+            <p className="text-[8px] sm:text-[10px] text-neutral-500 uppercase font-bold">Level</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold text-white">{pet?.level}</p>
           </div>
         </div>
-        <div className="pet-stat-card bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex items-center gap-3">
-          <Flame className="text-orange-500" size={20} />
+        <div className="pet-stat-card bg-neutral-900/50 p-2 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl border border-neutral-800 flex items-center gap-2 sm:gap-3">
+          <Flame className="text-orange-500 flex-shrink-0" size={16} />
           <div>
-            <p className="text-[10px] text-neutral-500 uppercase font-bold">XP</p>
-            <p className="text-xl font-bold text-white">{pet?.xp}</p>
+            <p className="text-[8px] sm:text-[10px] text-neutral-500 uppercase font-bold">XP</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold text-white">{pet?.xp}</p>
           </div>
         </div>
       </div>
 
-      <div className="mt-8 space-y-2">
-        <div className="flex justify-between text-xs font-bold">
+      <div className="mt-6 sm:mt-8 space-y-1.5 sm:space-y-2">
+        <div className="flex justify-between text-[10px] sm:text-xs font-bold">
           <span className="text-neutral-400">Progress to Level {Number(pet?.level || 1) + 1}</span>
           <span className="text-brand-pink">{Math.min(((pet?.level || 1) - 1) * 20 + ((pet?.xp || 0) % 100) / 5, 100).toFixed(0)}%</span>
         </div>
-        <div className="pet-xp-bar-bg w-full h-3 rounded-full overflow-hidden p-[2px]">
+        <div className="pet-xp-bar-bg w-full h-2 sm:h-3 rounded-full overflow-hidden p-[1px] sm:p-[2px]">
           <div 
             className="h-full bg-gradient-to-r from-brand-purple to-brand-pink rounded-full transition-all duration-1000 shadow-glow-pink"
             style={{ width: `${Math.min(((pet?.level || 1) - 1) * 20 + ((pet?.xp || 0) % 100) / 5, 100)}%` }}
@@ -124,12 +124,12 @@ const PetDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-6 sm:mt-8 flex justify-center">
         <button
           onClick={fireConfetti}
-          className="button"
+          className="button text-xs sm:text-sm md:text-base px-4 sm:px-6 md:px-8 py-2 sm:py-3"
         >
-          <Sparkles size={14} /> View Chotuu's Gallery
+          <Sparkles size={12} className="sm:w-4 sm:h-4" /> View Chotuu's Gallery
         </button>
       </div>
     </div>

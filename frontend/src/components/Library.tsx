@@ -78,39 +78,39 @@ const Library: React.FC = () => {
   if (error) return <div className="text-center text-red-500 mt-12">{error}</div>;
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex flex-col mb-6 mt-2.5">
-        <h2 className="section-title text-4xl mb-1">My Library</h2>
-        <p className="text-app-muted text-sm">Your saved stories collection</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+      <div className="flex flex-col mb-4 sm:mb-6 mt-2.5">
+        <h2 className="section-title text-2xl sm:text-3xl md:text-4xl mb-1">My Library</h2>
+        <p className="text-app-muted text-xs sm:text-sm">Your saved stories collection</p>
       </div>
 
-      <div className="flex gap-5 mb-11 flex-wrap">
-        <div className="stat-card flex-1 min-w-[180px] p-8 flex flex-col gap-4">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white bg-blue-500"><BookOpen size={20} /></div>
+      <div className="flex gap-2 sm:gap-3 md:gap-5 mb-6 sm:mb-11 flex-wrap">
+        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
+          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-blue-500"><BookOpen size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
           <div>
-            <h3 className="text-2xl font-bold text-app-text mb-0.5">{stories.length}</h3>
-            <p className="text-sm text-app-muted">Total Stories</p>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">{stories.length}</h3>
+            <p className="text-xs sm:text-sm text-app-muted">Total Stories</p>
           </div>
         </div>
-        <div className="stat-card flex-1 min-w-[180px] p-8 flex flex-col gap-4">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white bg-pink-500"><Clock size={20} /></div>
+        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
+          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-pink-500"><Clock size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
           <div>
-            <h3 className="text-2xl font-bold text-app-text mb-0.5">45h</h3>
-            <p className="text-sm text-app-muted">Reading Time</p>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">45h</h3>
+            <p className="text-xs sm:text-sm text-app-muted">Reading Time</p>
           </div>
         </div>
-        <div className="stat-card flex-1 min-w-[180px] p-8 flex flex-col gap-4">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white bg-green-500"><TrendingUp size={20} /></div>
+        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
+          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-green-500"><TrendingUp size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
           <div>
-            <h3 className="text-2xl font-bold text-app-text mb-0.5">+5</h3>
-            <p className="text-sm text-app-muted">This Week</p>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">+5</h3>
+            <p className="text-xs sm:text-sm text-app-muted">This Week</p>
           </div>
         </div>
-        <div className="stat-card flex-1 min-w-[180px] p-8 flex flex-col gap-4">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white bg-orange-500"><Star size={20} /></div>
+        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
+          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-orange-500"><Star size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
           <div>
-            <h3 className="text-2xl font-bold text-app-text mb-0.5">12</h3>
-            <p className="text-sm text-app-muted">Favorites</p>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">12</h3>
+            <p className="text-xs sm:text-sm text-app-muted">Favorites</p>
           </div>
         </div>
       </div>

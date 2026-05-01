@@ -155,43 +155,43 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	};
 
 	return (
-		<div className="flex flex-col items-center max-w-[900px] mx-auto px-5 py-10">
+		<div className="flex flex-col items-center max-w-[900px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
 
-			<div className="text-center mb-10">
-				<h1 style={{ fontSize: '2.4em', margin: '0 0 12px 0' }}>
+			<div className="text-center mb-6 sm:mb-10">
+				<h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
 					What Story Will You Create Today?
 				</h1>
 			</div>
 
-			<section className="card-base w-full p-8" style={{ backgroundColor: 'rgb(var(--app-surface))' }}>
+			<section className="card-base w-full p-4 sm:p-6 md:p-8 bg-app-surface">
 
 
-				<div className="story-generator-input flex items-center rounded-xl p-3.5 mb-5">
-					<Search className="mr-3 text-gray-400" size={20} />
+				<div className="story-generator-input flex items-center rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 mb-4 sm:mb-6">
+					<Search className="mr-2 sm:mr-3 text-gray-400 flex-shrink-0" size={18} />
 					<input
 						type="text"
-						className="flex-1 border-none outline-none bg-transparent font-base text-lg placeholder-opacity-60"
+						className="flex-1 border-none outline-none bg-transparent font-base text-sm sm:text-base md:text-lg placeholder-opacity-60"
 						value={genre}
 						onChange={(e) => setGenre(e.target.value)}
 						placeholder="Describe your story idea... (e.g., 'A wizard lost in time')"
 					/>
 				</div>
 
-				<div className="flex gap-4 mb-6">
+				<div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
 
-					<button type="button" className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-6 py-3 rounded-xl font-semibold border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30 disabled:opacity-50 disabled:cursor-not-allowed">
-						<Book size={18} className="inline" /> Story
+					<button type="button" className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30 disabled:opacity-50 disabled:cursor-not-allowed">
+						<Book size={16} className="sm:w-[18px] sm:h-[18px]" /> Story
 					</button>
-					<button type="button" onClick={() => alert("Poems coming soon!")} className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-6 py-3 rounded-xl font-semibold border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30 disabled:opacity-50 disabled:cursor-not-allowed">
-						<Feather size={18} className="inline" /> Poem
+					<button type="button" onClick={() => alert("Poems coming soon!")} className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30 disabled:opacity-50 disabled:cursor-not-allowed">
+						<Feather size={16} className="sm:w-[18px] sm:h-[18px]" /> Poem
 					</button>
 
-					<div className="language-selector flex items-center gap-1.5 px-3 py-1.5 rounded-xl">
-						<Globe size={18} className="text-violet-600" />
+					<div className="language-selector flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-app-surface/50 border border-app-violet/20">
+						<Globe size={16} className="text-violet-600 flex-shrink-0" />
 						<select 
 							value={language}
 							onChange={(e) => setLanguage(e.target.value)}
-							className="border-none outline-none text-sm font-semibold cursor-pointer"
+							className="border-none outline-none text-xs sm:text-sm font-semibold cursor-pointer bg-transparent"
 						>
 							<option value="English">English</option>
 							<option value="Hindi">Hindi (हिन्दी)</option>
@@ -203,16 +203,16 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 						</select>
 					</div>
 
-					<div className="chapters-control flex items-center gap-3 rounded-xl px-3 py-2">
-						<Layers size={18} className="text-violet-600 flex-shrink-0" />
-						<span className="chapters-control-text font-medium text-sm whitespace-nowrap flex-shrink-0">Chapters:</span>
-						<div className="flex items-center gap-2 flex-shrink-0">
-							<button type="button" onClick={() => setChapters(Math.max(1, chapters - 1))} className="inline-flex items-center justify-center gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-2 py-1 rounded-md font-semibold border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30 disabled:opacity-50 disabled:cursor-not-allowed">
-								<Minus size={14} />
+					<div className="chapters-control flex items-center gap-1.5 sm:gap-2 md:gap-3 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 bg-app-surface/50 border border-app-violet/20">
+						<Layers size={14} className="text-violet-600 flex-shrink-0 hidden sm:inline" />
+						<span className="chapters-control-text font-medium text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Ch:</span>
+						<div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+							<button type="button" onClick={() => setChapters(Math.max(1, chapters - 1))} className="inline-flex items-center justify-center bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-semibold border border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/20 disabled:opacity-50 disabled:cursor-not-allowed">
+								<Minus size={12} />
 							</button>
-							<span className="chapters-count font-bold w-6 text-center">{chapters}</span>
-							<button type="button" onClick={() => setChapters(Math.min(10, chapters + 1))} className="inline-flex items-center justify-center gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-2 py-1 rounded-md font-semibold border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30 disabled:opacity-50 disabled:cursor-not-allowed">
-								<Plus size={14} />
+							<span className="chapters-count font-bold w-4 sm:w-5 text-center text-xs sm:text-sm">{chapters}</span>
+							<button type="button" onClick={() => setChapters(Math.min(10, chapters + 1))} className="inline-flex items-center justify-center bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-semibold border border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/20 disabled:opacity-50 disabled:cursor-not-allowed">
+								<Plus size={12} />
 							</button>
 						</div>
 					</div>
