@@ -1,5 +1,3 @@
-/* Theme CSS Variables - Light & Dark Mode Support */
-/* Using RGB format for Tailwind opacity modifier support */
 
 :root {
   /* Dark Mode (Default) */
@@ -32,7 +30,6 @@ html[data-theme='light'] {
   --app-green: 34 197 94;
 }
 
-/* Apply theme to all elements */
 body,
 html {
   background-color: rgb(var(--app-bg));

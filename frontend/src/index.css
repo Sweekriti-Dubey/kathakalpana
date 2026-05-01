@@ -1,55 +1,169 @@
-@import './animations.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+
+
+@layer base {
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: rgb(var(--app-bg));
+    color: rgb(var(--app-text));
+    line-height: 1.65;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Dark mode background animations */
+  html[data-theme='dark'] body {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(88, 28, 135, 0.45) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 80%, rgba(109, 40, 217, 0.3) 0%, transparent 55%);
+    background-size: 200% 200%;
+    animation: bgShift 20s ease infinite;
+  }
+
+  /* Light mode background animations */
+  html[data-theme='light'] body {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 55%);
+    background-size: 200% 200%;
+    animation: bgShift 20s ease infinite;
+  }
+
+  /* Heading typography with gradients */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, #c4b5fd 50%, #ff5fa0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Light mode heading gradients */
+  html[data-theme='light'] h1,
+  html[data-theme='light'] h2,
+  html[data-theme='light'] h3,
+  html[data-theme='light'] h4,
+  html[data-theme='light'] h5,
+  html[data-theme='light'] h6 {
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 50%, #ec4899 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* @layer components - Reusable component classes */
 @layer components {
+
+  
   .button {
     @apply bg-gradient-to-br from-app-violet to-app-pink text-white px-8 py-3 rounded-full font-semibold shadow-lg shadow-app-violet/30 hover:-translate-y-1 hover:scale-105 hover:shadow-xl hover:shadow-app-violet/40 active:scale-95 transition-all duration-300 border-none inline-flex items-center gap-2.5;
   }
-}
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #3d342b;
-    background-color: #f9f6f0;
+  /* Title component - App header */
+  .title {
+    @apply font-playfair text-3xl font-black tracking-tight;
+    background: linear-gradient(120deg, rgb(var(--app-pink)), rgb(var(--app-violet)), rgb(var(--app-cyan)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  a:hover {
-    color: #8b7355;
+
+  /* Tooltip Panel - Word definition popup */
+  .tooltip-panel {
+    @apply bg-app-surface border border-app-violet/20 rounded-2xl backdrop-blur-xl p-4 w-64 shadow-2xl;
+    animation: tooltipFadeIn 0.18s ease-out;
+    z-index: 9999;
+  }
+
+  .tooltip-close {
+    @apply absolute top-2 right-2 bg-none border-none text-slate-400 cursor-pointer text-base leading-none p-1 hover:text-slate-200 transition-colors;
+  }
+
+  .tooltip-word {
+    @apply text-app-violet text-xs font-bold uppercase tracking-widest mb-1.5 pr-5;
+  }
+
+  .tooltip-loading {
+    @apply flex gap-1 pt-1;
+  }
+
+  .tooltip-bounce-dot {
+    @apply w-1.5 h-1.5 rounded-full bg-app-violet inline-block;
+    animation: tooltipBounce 0.6s ease-in-out infinite;
+  }
+
+  .tooltip-error {
+    @apply text-red-400 text-xs;
+  }
+
+  .tooltip-meaning {
+    @apply text-slate-200 text-sm leading-relaxed;
+  }
+
+  .tooltip-arrow {
+    @apply absolute w-2.5 h-2.5 bg-app-surface border border-app-violet/20;
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+}
+
+/* @layer utilities - Animation utility classes */
+@layer utilities {
+  .animate-scrollSlideFromRight {
+    animation: scrollSlideFromRight 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    pointer-events: auto;
+  }
+
+  .animate-scrollSlideFromLeft {
+    animation: scrollSlideFromLeft 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    pointer-events: auto;
+  }
+
+  .animate-scrollSlideOutRight {
+    animation: scrollSlideOutRight 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    pointer-events: none;
+  }
+
+  .animate-scrollSlideOutLeft {
+    animation: scrollSlideOutLeft 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    pointer-events: none;
+  }
+
+  .animate-fadeInInitial {
+    animation: fadeIn 0.8s ease-out forwards;
+    opacity: 0;
+  }
+
+  .feature-hidden {
+    opacity: 0;
+    transform: translateX(0);
+    pointer-events: none;
   }
 }

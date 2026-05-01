@@ -222,8 +222,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 					type="button"
 					onClick={generateStory}
 					disabled={loading || !genre.trim()}
-					className="button px-8 py-3 rounded-full font-semibold shadow-lg shadow-app-violet/30 hover:-translate-y-1 hover:scale-105 hover:shadow-xl hover:shadow-app-violet/40 active:scale-95 transition-all duration-300 border-none inline-flex items-center gap-2.5 w-full mt-2"
-					style={{ justifyContent: 'center', fontSize: '1.05em' }}
+					className="button px-8 py-3 rounded-full font-semibold shadow-lg shadow-app-violet/30 hover:-translate-y-1 hover:scale-105 hover:shadow-xl hover:shadow-app-violet/40 active:scale-95 transition-all duration-300 border-none inline-flex items-center justify-center gap-2.5 w-full mt-2 text-base"
 				>
 					{loading ? (
 						<>Generating… <Sparkles size={18} className="animate-spin" /></>

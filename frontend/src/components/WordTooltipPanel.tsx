@@ -48,96 +48,49 @@ const WordTooltipPanel: React.FC<Props> = ({state, onClose }) => {
     <FloatingPortal>
       <div
         ref={refs.setFloating}
-        style={{
-          ...floatingStyles,  
-          background: 'rgba(19, 17, 32, 0.92)',       
-          border: '1px solid rgba(167, 139, 250, 0.2)', 
-          borderRadius: '16px',
-          backdropFilter: 'blur(12px)',                
-          padding: '14px 16px',
-          width: 260,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-          zIndex: 9999,                                
-          animation: 'tooltipFadeIn 0.18s ease-out',
-        }}
+        className="tooltip-panel"
+        style={floatingStyles}
       >
         
         <button
           onClick={onClose}
           aria-label="Close tooltip"
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            background: 'none',
-            border: 'none',
-            color: '#94a3b8',
-            cursor: 'pointer',
-            fontSize: '16px',
-            lineHeight: 1,
-            padding : '4px',
-          }}
+          className="tooltip-close"
         >
           ✕
         </button>
       
-        <div style={{
-          color: '#a78bfa',
-          fontSize: '13px',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          marginBottom: '6px',
-          paddingRight: '20px',
-        }}>
+        <div className="tooltip-word">
           {state.word}
         </div>
 
         {state.loading ? (
-          <div style = {{ display:'flex', gap: '4px', paddingTop: '4px'}}>
+          <div className="tooltip-loading">
             {[0, 1, 2].map((i) => (
               <span
               key={i}
+              className="tooltip-bounce-dot"
               style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                backgroundColor: '#a78bfa',
-                display: 'inline-block',
-                animation: `tooltipBounce 0.6s ease-in-out ${i * 0.15}s infinite`,
-              
+                animationDelay: `${i * 0.15}s`,
               }}
               />
             ))}
         
       </div>
         ) : state.error ? (
-          <div style = {{ color: '#f87171', fontSize: '13px'}}>
+          <div className="tooltip-error">
             Couldn't load meaning
           </div>
         ) : (
-          <div style = {{
-            color: '#e2e8f0',
-            fontSize: '14px',
-            lineHeight: 1.6,
-          }}>
+          <div className="tooltip-meaning">
             {state.meaning}
             </div>
         )}
 
         <div 
-          ref = {arrowRef}
-          style = {{
-            position: 'absolute',
-            width: 10,
-            height: 10,
-            background: 'rgba(19, 17, 32, 0.92)',
-            border: '1px solid rgba(167, 139, 250, 0.2)',
-            borderTop: arrowSide === 'bottom' ? 'none' : undefined,
-            borderLeft: arrowSide === 'bottom' ? 'none' : undefined,
-            borderBottom: arrowSide === 'top'? 'none' : undefined,
-            borderRight: arrowSide === 'top' ? 'none': undefined,
-            transform: 'rotate(45deg)',
+          ref={arrowRef}
+          className="tooltip-arrow"
+          style={{
             left: arrowX != null ? arrowX : undefined,
             top: arrowY != null ? arrowY : undefined,
             [arrowSide]: '-6px',
@@ -162,3 +115,5 @@ const WordTooltipPanel: React.FC<Props> = ({state, onClose }) => {
 };
 
 export default WordTooltipPanel;
+
+/* Tooltip component styles */

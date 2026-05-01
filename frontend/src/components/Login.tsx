@@ -17,8 +17,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [success, setSuccess] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
-  const inputStyle = { padding: '10px', borderRadius: '5px', color: 'black', backgroundColor: 'white', border: '1px solid #ccc' };
-
   const passwordHint = 'Use at least 6 characters, including one uppercase letter, one lowercase letter, and one special character.';
 
   const client = useMemo(() => requireSupabaseClient(), []);
@@ -150,11 +148,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         : 'Update Password';
 
   return (
-    <div className="auth-container" style={{ textAlign: 'center', padding: '50px', color: 'white' }}>
-      <div className="auth-box" style={{ maxWidth: '400px', margin: 'auto', padding: '30px', background: '#2a2a2a', borderRadius: '15px' }}>
+    <div className="text-center py-12 px-6 text-white">
+      <div className="w-full max-w-md mx-auto p-7.5 bg-app-surface rounded-2xl">
         <h2>{title}</h2>
         
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <form onSubmit={handleSubmit} className = 'flex flex-col gap-4'>
           {!isResetView && (
             <input
               type="email"
@@ -162,7 +160,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               value={email}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
-              style={inputStyle}
+              className="input-auth"
             />
           )}
 
@@ -173,7 +171,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               value={password}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
-              style={inputStyle}
+              className = 'input-auth'
             />
           )}
 
@@ -185,25 +183,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 value={confirmPassword}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 required
-                style={inputStyle}
+                className= 'input-auth'
               />
-              <p style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '-6px' }}>{passwordHint}</p>
+              <p className="text-gray-400 text-xs mt-[-1.5]">{passwordHint}</p>
             </>
           )}
           
-          {error && <p style={{ color: '#ff6b6b' }}>{error}</p>}
-          {success && <p style={{ color: '#7ef0a8' }}>{success}</p>}
+          {error && <p className = 'text-red-500'>{error}</p>}
+          {success && <p className = 'text-green-400'>{success}</p>}
           
           <button
             type="submit"
             disabled={loading}
-            style={{ marginTop: '10px', padding: '10px', cursor: 'pointer', background: '#4facfe', border: 'none', color: 'white', borderRadius: '5px' }}
+            className = 'button w-full'
           >
             {loading ? 'Please wait...' : submitText}
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="mt-5 text-app-muted flex flex-col gap-2">
           {(isLoginView || isSignupView) && (
             <p>
               {isLoginView ? 'New here? ' : 'Already have an account? '}
@@ -212,7 +210,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   resetMessages();
                   setView(isLoginView ? 'signup' : 'login');
                 }}
-                style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}
+                className="link-primary cursor-pointer font-bold"
               >
                 {isLoginView ? 'Sign Up' : 'Log In'}
               </span>
@@ -226,7 +224,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   resetMessages();
                   setView('forgot');
                 }}
-                style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}
+                className="link-primary cursor-pointer font-bold"
               >
                 Forgot password?
               </span>
@@ -240,7 +238,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   resetMessages();
                   setView('login');
                 }}
-                style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}
+                className="link-primary cursor-pointer font-bold"
               >
                 Back to login
               </span>

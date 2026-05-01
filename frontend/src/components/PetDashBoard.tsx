@@ -70,11 +70,7 @@ const PetDashboard: React.FC = () => {
 
   return (
     <div 
-      className="card-base relative max-w-2xl mx-auto my-10"
-      style={{
-        backgroundColor: 'rgb(var(--app-surface))',
-        padding: '48px 40px',
-      }}
+      className="card-base relative max-w-2xl mx-auto my-10 bg-app-surface p-12"
     >
       {/* Gradient background */}
       <div 
@@ -129,12 +125,12 @@ const PetDashboard: React.FC = () => {
       </div>
 
       <div className="mt-8 flex justify-center">
-         <button
-           onClick={fireConfetti}
-           className='button'
-         >
-           <Sparkles size={14} /> View Chotuu's Gallery
-         </button>
+        <button
+          onClick={fireConfetti}
+          className="button"
+        >
+          <Sparkles size={14} /> View Chotuu's Gallery
+        </button>
       </div>
     </div>
   );
