@@ -616,7 +616,43 @@ const ManageAccountView: React.FC = () => {
       <div className="card-base p-6 md:p-8 border-red-500/20 bg-red-500/5">
         <h3 className="text-xl font-bold text-red-400 mb-2" style={plainTextStyle}>Danger Zone</h3>
         <p className="text-sm text-app-muted mb-6">Irreversible actions for your entire household account.</p>
-        <button className="px-5 py-2.5 bg-red-500/20 text-red-400 font-bold rounded-xl border border-red-500/30 hover:bg-red-500/30 transition-colors">
+        <button 
+          onClick={async () => {
+            const confirmed = window.confirm("Are you absolutely sure you want to delete your entire account? This action cannot be undone and will delete all kid profiles, stories, and pet data.");
+            if (!confirmed) return;
+            
+            try {
+              const client = requireSupabaseClient();
+              const { data } = await client.auth.getSession();
+              const token = data.session?.access_token;
+              if (!token) throw new Error("No access token");
+              
+              const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+              const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '') ?? '';
+              
+              const res = await fetch(`${functionsBaseUrl}/delete-account`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to delete account");
+              }
+              
+              await client.auth.signOut();
+              localStorage.clear();
+              window.location.href = '/login';
+            } catch (err: any) {
+              console.error("Error deleting account:", err);
+              alert(err.message || "An error occurred while deleting your account.");
+            }
+          }}
+          className="px-5 py-2.5 bg-red-500/20 text-red-400 font-bold rounded-xl border border-red-500/30 hover:bg-red-500/30 transition-colors"
+        >
           Delete Entire Account
         </button>
       </div>

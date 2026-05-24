@@ -376,12 +376,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div>
                 <label className="text-sm font-medium text-app-muted ml-1 mb-1.5 block">Admin Passcode (4-digits)</label>
                 <input
-                  type="password"
+                  type="text"
+                  inputMode="numeric"
+                  style={{ WebkitTextSecurity: 'disc' }}
                   maxLength={4}
                   placeholder="e.g. 1234"
                   value={parentPin}
                   onChange={(e) => setParentPin(e.target.value.replace(/\D/g, ''))}
                   className="input-auth text-lg py-3 tracking-widest text-center"
+                  autoComplete="off"
                 />
                 <p className="text-xs text-app-muted ml-1 mt-1">Used to access the Parent Dashboard and settings.</p>
               </div>

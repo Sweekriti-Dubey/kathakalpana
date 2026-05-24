@@ -50,12 +50,18 @@ export function useWordTooltip() {
     });
 
     try {
-      const response = await fetch(
-        `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
-      );
+      const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+      const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '') ?? '';
+      
+      const response = await fetch(`${functionsBaseUrl}/get-meaning`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word }),
+      });
+      
       if (!response.ok) throw new Error('Not found');
       const data = await response.json();
-      const definition = data[0]?.meanings[0]?.definitions[0]?.definition;
+      const definition = data.meaning;
 
       if (definition) {
         cache.set(word, definition);

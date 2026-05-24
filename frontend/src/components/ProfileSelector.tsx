@@ -194,12 +194,15 @@ const ProfileSelector: React.FC = () => {
             
             <form onSubmit={handlePinSubmit} className="flex flex-col gap-4">
               <input
-                type="password"
+                type="text"
+                inputMode="numeric"
+                style={{ WebkitTextSecurity: 'disc' }}
                 maxLength={4}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                 className="input-auth text-center text-2xl tracking-[1em] py-4"
                 autoFocus
+                autoComplete="off"
               />
               {pinError && <p className="text-red-500 text-sm text-center">{pinError}</p>}
               
