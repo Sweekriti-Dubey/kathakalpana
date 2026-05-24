@@ -62,7 +62,12 @@ const PetDashboard: React.FC = () => {
   if (error) return <div className="text-center py-10 text-red-400">{error}</div>;
 
   const getPetVisual = () => {
-    return <img src="/src/assets/images/pet.png" alt="Pet" className="w-48 h-48 sm:w-64 sm:h-64 object-contain animate-bounce" style={{ filter: 'drop-shadow(0 0 20px rgba(255,95,160,0.5))' }} />;
+    switch (pet?.evolution_stage) {
+      case 'adult': return '🦉';
+      case 'hatchling': return '🐣';
+      case 'egg':
+      default: return '🥚';
+    }
   };
 
   return (
