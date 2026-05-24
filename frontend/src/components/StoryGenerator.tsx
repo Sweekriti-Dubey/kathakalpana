@@ -34,11 +34,9 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 	const [language, setLanguage] = useState('English');
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
-	const [useSampleImages, setUseSampleImages] = useState(true);
+	const [generateImages, setGenerateImages] = useState(true);
 	const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null);
 
-	
-	
 	const getTokenExpiry = (jwt: string): number | null => {
 		try {
 			const payload = jwt.split('.')[1];
@@ -51,7 +49,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 		}
 	};
 
-	
 	const getAccessToken = async () => {
 		const fallback = token?.trim();
 		const { data, error } = await supabase.auth.getSession();
@@ -92,7 +89,7 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 					'Content-Type': 'application/json',
 					Authorization: `Bearer ${accessToken}`,
 				},
-				body: JSON.stringify({ genre, chapters, use_sample_images: useSampleImages, language }),
+				body: JSON.stringify({ genre, chapters, generate_images: generateImages, language }),
 			});
 
 			if (!res.ok) {
@@ -102,7 +99,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 			const contentType = res.headers.get('content-type') || '';
 
-	
 				if (contentType.includes('application/x-ndjson')) {
 				const reader = res.body!.getReader();
 				const decoder = new TextDecoder();
@@ -165,7 +161,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 
 			<section className="card-base w-full p-4 sm:p-6 md:p-8 bg-app-surface">
 
-
 				<div className="story-generator-input flex items-center rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 mb-4 sm:mb-6">
 					<Search className="mr-2 sm:mr-3 text-gray-400 flex-shrink-0" size={18} />
 					<input
@@ -186,20 +181,20 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 						<Feather size={16} className="sm:w-[18px] sm:h-[18px]" /> Poem
 					</button>
 
-					<div className="language-selector flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-app-surface/50 border border-app-violet/20">
-						<Globe size={16} className="text-violet-600 flex-shrink-0" />
+					<div className="language-selector flex-1 inline-flex items-center justify-center gap-1 sm:gap-2 bg-gradient-to-br from-app-violet/20 to-app-pink/15 text-app-violet px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-xl border-[1.5px] border-app-violet/40 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-app-violet/30">
+						<Globe size={16} className="text-app-violet flex-shrink-0" />
 						<select 
 							value={language}
 							onChange={(e) => setLanguage(e.target.value)}
-							className="border-none outline-none text-xs sm:text-sm font-semibold cursor-pointer bg-transparent"
+							className="border-none outline-none text-sm sm:text-base font-semibold cursor-pointer bg-transparent text-app-violet w-full focus:ring-0"
 						>
-							<option value="English">English</option>
-							<option value="Hindi">Hindi (हिन्दी)</option>
-							<option value="Spanish">Spanish</option>
-							<option value="French">French</option>
-							<option value="German">German</option>
-							<option value="Japanese">Japanese</option>
-							<option value="Arabic">Arabic</option>
+							<option value="English" className="bg-app-surface text-app-text">English</option>
+							<option value="Hindi" className="bg-app-surface text-app-text">Hindi (हिन्दी)</option>
+							<option value="Spanish" className="bg-app-surface text-app-text">Spanish</option>
+							<option value="French" className="bg-app-surface text-app-text">French</option>
+							<option value="German" className="bg-app-surface text-app-text">German</option>
+							<option value="Japanese" className="bg-app-surface text-app-text">Japanese</option>
+							<option value="Arabic" className="bg-app-surface text-app-text">Arabic</option>
 						</select>
 					</div>
 
@@ -236,17 +231,17 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 				<label className="cursor-pointer flex items-center gap-1.5 text-gray-500 text-sm">
 					<input
 						type="checkbox"
-						checked={!useSampleImages}
-						onChange={(e) => setUseSampleImages(!e.target.checked)}
+						checked={generateImages}
+						onChange={(e) => setGenerateImages(e.target.checked)}
 					/>
-					Generate real AI images (uses HuggingFace tokens)
+					Create with images
 				</label>
 			</div>
 
-			{/* Error Message */}
+			{}
 			{error && <p className="text-red-500 mt-4 text-center">{error}</p>}
 
-			{/* Image Progress */}
+			{}
 			{imageProgress && (
 				<div className="mt-4 text-center w-full">
 					<p className="story-text-accent font-semibold">

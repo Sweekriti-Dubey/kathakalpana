@@ -8,6 +8,7 @@ import { requireSupabaseClient } from '../lib/supabaseClient';
 import { useWordTooltip } from '../hooks/useWordTooltip';
 import { tokenizeContent, getCleanWord, isClickableWord } from '../utils/tokenizeContent';
 import WordTooltipPanel from './WordTooltipPanel';
+import { useProfile } from '../contexts/ProfileContext';
 
 const StoryReader: React.FC = () => {
   const location = useLocation();
@@ -20,7 +21,7 @@ const StoryReader: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [petGrowth, setPetGrowth] = useState<PetStatus | null>(null);
+  const [petGrowth, setPetGrowth] = useState<(PetStatus & { goalMessage?: string }) | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFoodFeeding, setShowFoodFeeding] = useState(false);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
@@ -92,7 +93,6 @@ const StoryReader: React.FC = () => {
     }
   };
 
-
   const getAccessToken = async () => {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) throw sessionError;
@@ -139,6 +139,8 @@ const StoryReader: React.FC = () => {
   
   };
 
+  const { currentProfile } = useProfile();
+  
   const saveStory = async () => {
     if (!functionsBaseUrl) {
       setError('Missing VITE_SUPABASE_FUNCTIONS_URL in frontend .env');
@@ -151,7 +153,11 @@ const StoryReader: React.FC = () => {
       const token = await getAccessToken();
       const saveUrl = `${functionsBaseUrl}/save-story`;
       await axios.post(saveUrl, story, {
-        headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey }
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          apikey: supabaseAnonKey,
+          'x-profile-id': currentProfile?.profile_id || ''
+        }
       });
       setSaved(true);
     } catch (err) {
@@ -168,12 +174,10 @@ const StoryReader: React.FC = () => {
     }
   };
 
-  
   const handleFinish = async () => {
     setShowFoodFeeding(true);
   };
 
-  
   const handleFoodSelected = async (foodId: string) => {
     setSelectedFood(foodId);
     if (!functionsBaseUrl) {
@@ -189,14 +193,47 @@ const StoryReader: React.FC = () => {
       await axios.post(
         completeUrl, 
         { food: foodId },
-        { headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey } }
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`, 
+            apikey: supabaseAnonKey,
+            'x-profile-id': currentProfile?.profile_id || ''
+          } 
+        }
       );
 
       const petRes = await axios.get(petStatusUrl, {
-        headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnonKey }
-      });
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          apikey: supabaseAnonKey,
+          'x-profile-id': currentProfile?.profile_id || ''
+        }
+      });
+      await supabase.from('reading_history').insert({
+        profile_id: currentProfile?.profile_id
+      });
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+      startOfWeek.setHours(0, 0, 0, 0);
 
-      setPetGrowth(petRes.data);
+      const [{ data: historyData }, { data: settingsData }] = await Promise.all([
+        supabase.from('reading_history').select('*').eq('profile_id', currentProfile?.profile_id).gte('created_at', startOfWeek.toISOString()),
+        supabase.from('kid_settings').select('weekly_stories_goal').eq('profile_id', currentProfile?.profile_id).single()
+      ]);
+
+      const storiesFinishedThisWeek = (historyData?.length || 0);
+      const weeklyGoal = settingsData?.weekly_stories_goal || 14;
+      let goalMessage = '';
+
+      if (storiesFinishedThisWeek >= weeklyGoal) {
+        goalMessage = `🌟 You completed your weekly goal of ${weeklyGoal} stories! 🌟`;
+      } else {
+        const left = weeklyGoal - storiesFinishedThisWeek;
+        goalMessage = `Read ${left} more to complete your weekly goal!`;
+      }
+
+      setPetGrowth({ ...petRes.data, goalMessage });
       setShowFoodFeeding(false);
     } catch (err) {
       console.error("Failed to update stats:", err);
@@ -210,6 +247,26 @@ const StoryReader: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveWord = async (word: string, meaning: string) => {
+    if (!currentProfile?.profile_id) return;
+    try {
+      const { error } = await supabase.from('saved_words').insert({
+        profile_id: currentProfile.profile_id,
+        word: word,
+        meaning: meaning,
+        is_important: false,
+        wrong_count: 0
+      });
+      if (error) {
+        console.error("Error saving word:", error);
+      } else {
+        console.log("Word saved:", word);
+      }
+    } catch (e) {
+      console.error("Failed to save word:", e);
     }
   };
 
@@ -335,7 +392,7 @@ const StoryReader: React.FC = () => {
               />
             </div>
 
-            {/* Tab Toggle */}
+            {}
             <div className="story-reader-tab-container flex gap-3 p-2 rounded-xl w-fit bg-[#131120]/50 backdrop-blur-[8px] border border-[rgba(167,139,250,0.1)]">
               <button
                 onClick={() => setShowAllChaptersView(false)}
@@ -363,7 +420,6 @@ const StoryReader: React.FC = () => {
               {showAllChaptersView ? AllChaptersView() : ChapterContent({ inFullView: true })}
             </div>
 
-            
             {!showAllChaptersView && (
               <div className="story-nav-bar flex items-center justify-between pt-2 pb-2.5 px-4 rounded-2xl">
                 <button
@@ -490,6 +546,13 @@ const StoryReader: React.FC = () => {
                 Level: <span className="font-bold">{petGrowth.level}</span> · XP: <span className="font-bold">{petGrowth.xp}</span>
               </p>
             </div>
+            
+            {petGrowth.goalMessage && (
+              <p className="text-[#ECFDF5] text-[1.1em] font-bold mb-[20px] bg-white/20 p-3 rounded-xl border border-white/30 animate-pulse">
+                {petGrowth.goalMessage}
+              </p>
+            )}
+
             <button
               onClick={() => navigate('/pet')}
               className="bg-gradient-to-br from-[#059669] to-[#047857] text-white border-none py-3 px-[30px] rounded-[20px] text-[1em] font-bold cursor-pointer transition-all duration-300 w-full hover:scale-105 hover:shadow-[0_10px_25px_rgba(16,185,129,0.4)]"
@@ -500,16 +563,14 @@ const StoryReader: React.FC = () => {
         </div>
       )}
 
-
-
       {showFoodFeeding && (
-        <div className="story-reader-fullscreen-overlay fixed inset-0 flex items-center justify-center z-[200] p-5">
-          <div className="story-reader-modal-container rounded-[20px] p-[25px] max-w-[380px] border-2 border-[rgba(255,107,158,0.3)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] text-center">
-            <h2 className="text-[#FF6B9E] text-[1.4em] mb-[15px] font-bold">
+        <div className="fixed inset-0 flex items-center justify-center z-[200] p-5 bg-black/60 backdrop-blur-sm">
+          <div className="card-base w-full max-w-[380px] p-6 text-center bg-app-surface border border-app-pink/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+            <h2 className="text-app-pink text-2xl mb-4 font-bold">
               🐲 Feed Chotuu!
             </h2>
             
-            <div className="mb-[20px] flex justify-center">
+            <div className="mb-5 flex justify-center">
               <DotLottieReact
                 src="https://lottie.host/ede28d81-acb0-4fe9-a9df-42f14c67ae4a/BEyZkJV2Ug.lottie"
                 loop
@@ -518,7 +579,7 @@ const StoryReader: React.FC = () => {
               />
             </div>
 
-            <p className="text-[#E0E0E0] mb-[20px] text-[0.95em]">
+            <p className="text-app-text mb-5 font-medium">
               Choose a food:
             </p>
 
@@ -561,7 +622,7 @@ const StoryReader: React.FC = () => {
           </div>
         </div>
       )}
-      <WordTooltipPanel state = {tooltipState} onClose ={closeTooltip} />
+      <WordTooltipPanel state={tooltipState} onClose={closeTooltip} onSaveWord={handleSaveWord} />
     </>
   );
 };

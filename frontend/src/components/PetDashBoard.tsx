@@ -4,15 +4,14 @@ import { Sparkles, Trophy, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PetStatus } from '../types';
 import { requireSupabaseClient } from '../lib/supabaseClient';
+import { useProfile } from '../contexts/ProfileContext';
 
 const PetDashboard: React.FC = () => {
+  const { currentProfile } = useProfile();
   const [pet, setPet] = useState<PetStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const hasCelebratedAdult = useRef(false);
-
-  // Important: Triggers celebratory animation when pet evolves to adult stage. Uses canvas-confetti for engaging
-  // visual feedback that reinforces achievement and motivates continued story reading to reach evolution milestones.
+  const hasCelebratedAdult = useRef(false);
   const fireConfetti = useCallback(() => {
     confetti({
       particleCount: 90,
@@ -37,7 +36,10 @@ const PetDashboard: React.FC = () => {
         const { data } = await supabaseClient.auth.getSession();
         const token = data.session?.access_token ?? '';
         const res = await axios.get(statusUrl, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'x-profile-id': currentProfile?.profile_id || ''
+          }
         });
         setPet(res.data);
       } catch (err) {
@@ -48,10 +50,7 @@ const PetDashboard: React.FC = () => {
       }
     };
     fetchPet();
-  }, []);
-
-  // Critical: One-time celebration trigger for reaching adult evolution. Prevents duplicate celebrations via ref flag
-  // even if component re-renders, ensuring confetti fires exactly once when milestone is achieved.
+  }, [currentProfile]);
   useEffect(() => {
     if (pet?.evolution_stage === 'adult' && !hasCelebratedAdult.current) {
       fireConfetti();
@@ -59,20 +58,18 @@ const PetDashboard: React.FC = () => {
     }
   }, [pet?.evolution_stage, fireConfetti]);
 
-  if (loading) return <div className="text-center py-10 animate-pulse text-brand-purple">Finding Chotuu...</div>;
+  if (loading) return <div className="text-center py-10 animate-pulse text-brand-purple">Finding your pet...</div>;
   if (error) return <div className="text-center py-10 text-red-400">{error}</div>;
 
   const getPetVisual = () => {
-    if (pet?.evolution_stage === 'adult') return "🐉";
-    if (pet?.evolution_stage === 'hatchling') return "🐥";
-    return "🥚";
+    return <img src="/src/assets/images/pet.png" alt="Pet" className="w-48 h-48 sm:w-64 sm:h-64 object-contain animate-bounce" style={{ filter: 'drop-shadow(0 0 20px rgba(255,95,160,0.5))' }} />;
   };
 
   return (
     <div 
       className="card-base relative max-w-2xl mx-auto my-4 sm:my-6 md:my-10 bg-app-surface px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-12"
     >
-      {/* Gradient background */}
+      {}
       <div 
         className="chotuu-gradient-overlay absolute inset-0 rounded-3xl pointer-events-none"
       />
@@ -129,7 +126,7 @@ const PetDashboard: React.FC = () => {
           onClick={fireConfetti}
           className="button text-xs sm:text-sm md:text-base px-4 sm:px-6 md:px-8 py-2 sm:py-3"
         >
-          <Sparkles size={12} className="sm:w-4 sm:h-4" /> View Chotuu's Gallery
+          <Sparkles size={12} className="sm:w-4 sm:h-4" /> View {pet?.pet_name || 'Pet'}'s Gallery
         </button>
       </div>
     </div>

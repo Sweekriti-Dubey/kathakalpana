@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-profile-id",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
@@ -57,13 +57,20 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Invalid token" }, { status: 401 });
   }
 
+  const profileId = req.headers.get("x-profile-id");
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("stories")
     .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .eq("user_id", userId);
+
+  if (profileId) {
+    query = query.eq("profile_id", profileId);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) {
     return jsonResponse({ error: error.message }, { status: 500 });

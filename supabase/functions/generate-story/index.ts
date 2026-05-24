@@ -1,4 +1,4 @@
-/// <reference path="../edge-runtime.d.ts" />
+
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -11,7 +11,8 @@ type StoryRequest = {
   genre: string;
   chapters: number;
   character_seed?: number;
-  use_sample_images?: boolean;
+  generate_images?: boolean;
+  language?: string;
 };
 
 type StoryChapter = {
@@ -37,16 +38,9 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const STORY_IMAGES_BUCKET = Deno.env.get("STORY_IMAGES_BUCKET") ?? "story-images";
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24;
-const LEGACY_SKIP_IMAGE_GENERATION = Deno.env.get("SKIP_IMAGE_GENERATION") === "true";
-const IMAGE_MODE = (
-  Deno.env.get("IMAGE_MODE") ??
-  (LEGACY_SKIP_IMAGE_GENERATION ? "sample" : "huggingface")
-).toLowerCase();
-const SAMPLE_IMAGES_BUCKET = Deno.env.get("SAMPLE_IMAGES_BUCKET") ?? "story-samples";
-const SAMPLE_IMAGES_PREFIX = Deno.env.get("SAMPLE_IMAGES_PREFIX") ?? "cartoon";
 
-const HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0";
-const IMAGE_GEN_DELAY_MS = 2000;
+const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
+const IMAGE_GEN_DELAY_MS = 1000;
 
 const systemPrompt = [
   "You are a Pixar movie director and a children story author.",
@@ -83,17 +77,8 @@ function parseUserIdFromAuthorizationHeader(authorizationHeader: string): string
   }
 }
 
-
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getSampleImageUrl(chapterIndex: number): string {
-  
-  const chapterNumber = ((chapterIndex % 10) + 1);
-  const objectPath = `${SAMPLE_IMAGES_PREFIX}/chapter-${chapterNumber}.png`;
-  return `${SUPABASE_URL}/storage/v1/object/public/${SAMPLE_IMAGES_BUCKET}/${objectPath}`;
 }
 
 async function generateImageHuggingFace(
@@ -118,8 +103,8 @@ async function generateImageHuggingFace(
             inputs: prompt,
             parameters: {
               seed,
-              guidance_scale: 7.5,
-              num_inference_steps: 30,
+              num_inference_steps: 4,
+              guidance_scale: 3.5,
               negative_prompt: "scary, horror, gore, realistic violence, disturbing, dark"
             },
           }),
@@ -171,16 +156,9 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  if (!["sample", "huggingface"].includes(IMAGE_MODE)) {
+  if (!HUGGINGFACE_API_KEY) {
     return jsonResponse(
-      { error: "Invalid IMAGE_MODE. Use 'sample' or 'huggingface'." },
-      { status: 500 },
-    );
-  }
-
-  if (IMAGE_MODE === "huggingface" && !HUGGINGFACE_API_KEY) {
-    return jsonResponse(
-      { error: "Missing HUGGINGFACE_API_KEY. Use IMAGE_MODE=sample for testing without token usage." },
+      { error: "Missing HUGGINGFACE_API_KEY." },
       { status: 500 },
     );
   }
@@ -196,9 +174,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "genre and chapters are required." }, { status: 400 });
   }
 
-  const userId = parseUserIdFromAuthorizationHeader(req.headers.get("Authorization") ?? "");
-
-  // Admin client is used for storage operations so generation does not depend on caller auth state.
+  const userId = parseUserIdFromAuthorizationHeader(req.headers.get("Authorization") ?? "");
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const characterSeed = payload.character_seed ?? Math.floor(Math.random() * 90000) + 10000;
@@ -216,7 +192,7 @@ Deno.serve(async (req: Request) => {
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Write a ${payload.genre} story with ${payload.chapters} chapters. Make each chapter detailed and engaging with at least 200-300 words. Include vivid descriptions, dialogue, and emotions.`,
+          content: `Write a ${payload.genre} story with ${payload.chapters} chapters. Write the ENTIRE story exclusively in ${payload.language || 'English'}. Make each chapter detailed and engaging with at least 200-300 words. Include vivid descriptions, dialogue, and emotions. Ensure the JSON output keys (title, moral, chapters, content, image_prompt) remain in English, but their values (the actual story text) must be in ${payload.language || 'English'}.`,
         },
       ],
     }),
@@ -242,62 +218,73 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Groq response missing story fields" }, { status: 502 });
   }
 
+  const numChapters = story.chapters.length;
+  const imageIndices = new Set<number>([0]);
+  if (numChapters >= 3) {
+    imageIndices.add(Math.floor(numChapters / 2));
+    imageIndices.add(numChapters - 1);
+  } else if (numChapters === 2) {
+    imageIndices.add(1);
+  }
+
   const chapters: StoryChapter[] = [];
 
-  for (let i = 0; i < story.chapters.length; i += 1) {
+  for (let i = 0; i < numChapters; i += 1) {
     const chapter = story.chapters[i] ?? { title: "", content: "" };
-    const basePrompt = chapter.image_prompt ?? `${chapter.title}. ${chapter.content}`;
-    const imagePrompt = [
-      "Children's storybook cartoon illustration, kid-safe, bright and joyful.",
-      "Same protagonist identity in every chapter: same fur color, same eye color, same outfit, same art style.",
-      "Soft lighting, rounded shapes, expressive faces, clean background composition.",
-      "No horror, no violence, no realistic style.",
-      `Character consistency seed: ${characterSeed}.`,
-      basePrompt.slice(0, 240),
-    ].join(" ");
-
+    
     let imageUrl: string | null = null;
     let imageError: string | null = null;
 
-    const useSample = payload.use_sample_images ?? (IMAGE_MODE === "sample");
-    if (useSample) {
-      imageUrl = getSampleImageUrl(i);
-    } else {
-      try {
-        if (i > 0) {
-          await sleep(IMAGE_GEN_DELAY_MS);
-        }
+    const basePrompt = chapter.image_prompt ?? `${chapter.title}. ${chapter.content}`;
 
-        const chapterSeed = characterSeed + i;
-        const imageBytes = await generateImageHuggingFace(imagePrompt, HUGGINGFACE_API_KEY!, chapterSeed);
-        if (!imageBytes) {
-          imageError = "No image returned by HuggingFace.";
-        } else {
-          const objectPath = `${userId}/story-${Date.now()}/chapter-${i + 1}.png`;
+    if (imageIndices.has(i)) {
+      const imagePrompt = [
+        "Children's storybook cartoon illustration, kid-safe, bright and joyful.",
+        "Same protagonist identity in every chapter: same fur color, same eye color, same outfit, same art style.",
+        "Soft lighting, rounded shapes, expressive faces, clean background composition.",
+        "No horror, no violence, no realistic style.",
+        `Character consistency seed: ${characterSeed}.`,
+        basePrompt.slice(0, 240),
+      ].join(" ");
 
-          const uploadResult = await supabase.storage
-            .from(STORY_IMAGES_BUCKET)
-            .upload(objectPath, imageBytes, {
-              contentType: "image/png",
-              upsert: true,
-            });
+      const skipImages = payload.generate_images === false;
+      if (!skipImages) {
+        try {
+          if (i > 0) {
+            await sleep(IMAGE_GEN_DELAY_MS);
+          }
 
-          if (uploadResult.error) {
-            imageError = uploadResult.error.message;
+          const chapterSeed = characterSeed + i;
+          const imageBytes = await generateImageHuggingFace(imagePrompt, HUGGINGFACE_API_KEY!, chapterSeed);
+          if (!imageBytes) {
+            imageError = "No image returned by HuggingFace.";
           } else {
-            const signed = await supabase.storage
-              .from(STORY_IMAGES_BUCKET)
-              .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
+            const objectPath = `${userId}/story-${Date.now()}/chapter-${i + 1}.png`;
 
-            if (signed.error || !signed.data?.signedUrl) {
-              imageError = signed.error?.message ?? "Failed to create signed URL.";
+            const uploadResult = await supabase.storage
+              .from(STORY_IMAGES_BUCKET)
+              .upload(objectPath, imageBytes, {
+                contentType: "image/png",
+                upsert: true,
+              });
+
+            if (uploadResult.error) {
+              imageError = uploadResult.error.message;
             } else {
-              imageUrl = signed.data.signedUrl;
+              const signed = await supabase.storage
+                .from(STORY_IMAGES_BUCKET)
+                .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
+
+              if (signed.error || !signed.data?.signedUrl) {
+                imageError = signed.error?.message ?? "Failed to create signed URL.";
+              } else {
+                imageUrl = signed.data.signedUrl;
+              }
             }
           }
+        } catch (error) {
+          imageError = error instanceof Error ? error.message : "Image generation failed.";
         }
-      } catch (error) {
-        imageError = error instanceof Error ? error.message : "Image generation failed.";
       }
     }
 

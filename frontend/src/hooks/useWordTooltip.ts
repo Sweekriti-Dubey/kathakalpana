@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 
-
 export interface VirtualAnchor {
   getBoundingClientRect: () => DOMRect;
 }
@@ -25,7 +24,6 @@ export function useWordTooltip() {
       return;
     }
 
-   
     const rect = el.getBoundingClientRect();
     const virtualAnchor: VirtualAnchor = {
       getBoundingClientRect: () => rect,

@@ -1,4 +1,4 @@
-/// <reference types="vite/client" />
+
 
 type ViteEnvString = string | undefined;
 

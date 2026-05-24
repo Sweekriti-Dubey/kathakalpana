@@ -217,16 +217,16 @@ export default {
 
         '.input-auth': {
           '@apply w-full px-3 py-2.5 rounded-lg border transition-all duration-200': {},
-          backgroundColor: 'white',
-          color: '#000000',
-          borderColor: '#cccccc',
+          backgroundColor: '#374151',
+          color: '#ffffff',
+          borderColor: '#4b5563',
           
           '&:focus': {
             '@apply outline-none ring-2 ring-blue-400 border-blue-400': {},
           },
           
           '&::placeholder': {
-            color: '#999999',
+            color: '#9ca3af',
           },
         },
 

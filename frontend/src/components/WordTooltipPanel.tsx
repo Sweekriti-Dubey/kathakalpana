@@ -10,13 +10,13 @@ import {
 } from '@floating-ui/react';
 import type { TooltipState } from '../hooks/useWordTooltip';
 
-
 interface Props {
   state: TooltipState | null;
   onClose: () => void;
+  onSaveWord?: (word: string, meaning: string) => void;
 }
 
-const WordTooltipPanel: React.FC<Props> = ({state, onClose }) => {
+const WordTooltipPanel: React.FC<Props> = ({state, onClose, onSaveWord }) => {
   const arrowRef = useRef<HTMLDivElement>(null);
 
   const { refs, floatingStyles, placement, middlewareData } = useFloating({
@@ -82,9 +82,17 @@ const WordTooltipPanel: React.FC<Props> = ({state, onClose }) => {
             Couldn't load meaning
           </div>
         ) : (
-          <div className="tooltip-meaning">
-            {state.meaning}
-            </div>
+          <div className="tooltip-meaning flex flex-col gap-2">
+            <div>{state.meaning}</div>
+            {onSaveWord && (
+              <button 
+                onClick={() => onSaveWord(state.word, state.meaning)}
+                className="self-end text-xs font-bold text-app-pink hover:text-white bg-app-pink/20 px-2 py-1 rounded transition-colors"
+              >
+                + Save Word
+              </button>
+            )}
+          </div>
         )}
 
         <div 
@@ -116,4 +124,3 @@ const WordTooltipPanel: React.FC<Props> = ({state, onClose }) => {
 
 export default WordTooltipPanel;
 
-/* Tooltip component styles */

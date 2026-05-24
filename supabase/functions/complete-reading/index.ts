@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-profile-id",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -65,6 +65,11 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Missing or invalid Authorization header." }, { status: 401 });
   }
 
+  const profileId = req.headers.get("x-profile-id");
+  if (!profileId) {
+    return jsonResponse({ error: "Missing x-profile-id header" }, { status: 400 });
+  }
+
   const userId = parseUserIdFromAccessToken(accessToken);
   if (!userId) {
     return jsonResponse({ error: "Unauthorized" }, { status: 401 });
@@ -76,8 +81,7 @@ Deno.serve(async (req: Request) => {
   const todayStr = formatDate(today);
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
-  const yesterdayStr = formatDate(yesterday);
-
+  const yesterdayStr = formatDate(yesterday);
   const { data: profileRow, error: profileFetchError } = await supabase
     .from("profiles")
     .select("streak_count,last_read_date")
@@ -117,6 +121,7 @@ Deno.serve(async (req: Request) => {
     .from("pet_stats")
     .select("xp")
     .eq("user_id", userId)
+    .eq("profile_id", profileId)
     .maybeSingle();
 
   if (petFetchError) {
@@ -131,28 +136,22 @@ Deno.serve(async (req: Request) => {
 
   let { error: petUpsertError } = await supabase
     .from("pet_stats")
-    .upsert(
-      {
-        user_id: userId,
+    .update({
         xp: nextXp,
         level: nextLevel,
         evolution_stage: primaryStage,
-      },
-      { onConflict: "user_id" },
-    );
+    })
+    .eq('profile_id', profileId);
 
   if (petUpsertError && primaryStage !== fallbackStage) {
     const fallback = await supabase
       .from("pet_stats")
-      .upsert(
-        {
-          user_id: userId,
+      .update({
           xp: nextXp,
           level: nextLevel,
           evolution_stage: fallbackStage,
-        },
-        { onConflict: "user_id" },
-      );
+      })
+      .eq('profile_id', profileId);
     petUpsertError = fallback.error;
   }
 

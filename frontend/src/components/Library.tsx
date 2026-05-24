@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, TrendingUp, Star } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { requireSupabaseClient } from '../lib/supabaseClient';
+import { useProfile } from '../contexts/ProfileContext';
+import owlLogo from '../assets/images/owllogo2.png';
 interface Chapter {
   image_url?: string;
 }
@@ -27,6 +29,7 @@ const hashStringToInt = (str: string): number => {
 };
 
 const Library: React.FC = () => {
+  const { currentProfile } = useProfile();
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -38,7 +41,7 @@ const Library: React.FC = () => {
 
   useEffect(() => {
     fetchLibrary();
-  }, []);
+  }, [currentProfile]);
 
   const fetchLibrary = async (): Promise<void> => {
     if (!functionsBaseUrl) {
@@ -51,7 +54,10 @@ const Library: React.FC = () => {
       const { data } = await client.auth.getSession();
       const token = data.session?.access_token ?? '';
       const response = await axios.get(listUrl, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'x-profile-id': currentProfile?.profile_id || ''
+        }
       });
       const normalized = (response.data ?? []).map((story: Story) => {
         const content = story.content ?? story;
@@ -84,37 +90,6 @@ const Library: React.FC = () => {
         <p className="text-app-muted text-xs sm:text-sm">Your saved stories collection</p>
       </div>
 
-      <div className="flex gap-2 sm:gap-3 md:gap-5 mb-6 sm:mb-11 flex-wrap">
-        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
-          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-blue-500"><BookOpen size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
-          <div>
-            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">{stories.length}</h3>
-            <p className="text-xs sm:text-sm text-app-muted">Total Stories</p>
-          </div>
-        </div>
-        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
-          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-pink-500"><Clock size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
-          <div>
-            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">45h</h3>
-            <p className="text-xs sm:text-sm text-app-muted">Reading Time</p>
-          </div>
-        </div>
-        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
-          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-green-500"><TrendingUp size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
-          <div>
-            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">+5</h3>
-            <p className="text-xs sm:text-sm text-app-muted">This Week</p>
-          </div>
-        </div>
-        <div className="stat-card flex-1 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] p-4 sm:p-6 md:p-8 flex flex-col gap-3 sm:gap-4">
-          <div className="w-9 sm:w-10 md:w-11 h-9 sm:h-10 md:h-11 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-white bg-orange-500"><Star size={16} className="sm:w-5 sm:h-5 md:w-5 md:h-5" /></div>
-          <div>
-            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-app-text mb-0.5">12</h3>
-            <p className="text-xs sm:text-sm text-app-muted">Favorites</p>
-          </div>
-        </div>
-      </div>
-
       {stories.length === 0 ? (
         <div className="text-center opacity-70 py-10">No stories saved yet. Go create one!</div>
       ) : (
@@ -129,11 +104,11 @@ const Library: React.FC = () => {
                 className="relative rounded-3xl overflow-hidden cursor-pointer shadow-lg transition-all duration-300 hover:translate-y-[-10px] hover:shadow-2xl aspect-[3/4]"
                 onClick={() => openStory(story)}
               >
-                <div className="absolute inset-0 w-full h-full bg-app-surface">
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#2D1B69] to-[#1A0B2E] flex items-center justify-center p-8">
                   <img 
-                    src={coverImage} 
-                    alt={`${story.title} cover`}
-                    className="w-full h-full object-cover transition-transform duration-600 hover:scale-110"
+                    src={owlLogo} 
+                    alt="Owl Logo"
+                    className="w-3/4 h-auto object-contain transition-transform duration-600 hover:scale-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] opacity-90"
                   />
                 </div>
                 <div className="absolute top-4 right-4 w-11 h-11 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white text-xs font-bold z-10 border border-white/30">

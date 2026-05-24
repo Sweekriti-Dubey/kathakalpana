@@ -1,12 +1,12 @@
 import React, { useEffect, useState, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark} from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark, ArrowLeftRight } from 'lucide-react';
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ProfileProvider, useProfile } from './contexts/ProfileContext';
 import ThemeToggle from './components/ThemeToggle';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
-
 
 import Login from './components/Login';
 import TitleContainer from './components/TitleContainer';
@@ -15,24 +15,200 @@ const Library = React.lazy(() => import('./components/Library'));
 const StoryGenerator = React.lazy(() => import('./components/StoryGenerator'));
 const StoryReader = React.lazy(() => import('./components/StoryReader'));
 const PetDashboard = React.lazy(() => import('./components/PetDashBoard'));
+const ParentDashboard = React.lazy(() => import('./components/ParentDashboard'));
+const ProfileSelector = React.lazy(() => import('./components/ProfileSelector'));
+const WordVault = React.lazy(() => import('./components/WordVault'));
+const Quiz = React.lazy(() => import('./components/Quiz'));
+import ScreenTimeTracker from './components/ScreenTimeTracker';
+import owlLogo from './assets/images/owllogo2.png';
+
+const ProfileSelectorOverlay: React.FC = () => {
+  const { showSelector, isLoading } = useProfile();
+  
+  if (isLoading || !showSelector) return null;
+  
+  return (
+    <Suspense fallback={null}>
+      <ProfileSelector />
+    </Suspense>
+  );
+};
+
+const NavProfileBadge: React.FC = () => {
+  const { currentProfile, openSelector, availableProfiles } = useProfile();
+  
+  if (!currentProfile) return null;
+  
+  return (
+    <div className="flex items-center gap-1.5">
+      {currentProfile.profile_type === 'parent' && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-app-violet/20 bg-app-violet/10 text-sm">
+          <span className="text-base">{currentProfile.avatar_emoji}</span>
+          <span className="text-app-text font-medium hidden sm:inline">{currentProfile.name}</span>
+        </div>
+      )}
+      
+      {availableProfiles.length >= 2 && (
+        <button
+          onClick={openSelector}
+          className="p-2 rounded-xl border border-app-border text-app-muted hover:text-app-text hover:border-app-violet/40 transition-all"
+          title="Switch Profile"
+        >
+          <ArrowLeftRight size={14} />
+        </button>
+      )}
+    </div>
+  );
+};
+
+const AppContent: React.FC<{ session: Session | null; handleLogin: (s: Session | null) => void; handleLogout: () => void; authReady: boolean }> = ({ session, handleLogin, handleLogout, authReady }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isParentRoute = location.pathname === '/parent';
+  const { currentProfile } = useProfile();
+
+  const [petName, setPetName] = useState('Chotuu');
+  useEffect(() => {
+    if (currentProfile?.profile_type === 'parent' && location.pathname === '/') {
+      navigate('/parent');
+    }
+  }, [currentProfile, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (authReady && !session && location.pathname !== '/login') {
+      navigate('/login', { replace: true });
+    }
+  }, [authReady, session, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (session && currentProfile) {
+      const fetchPetName = async () => {
+        try {
+          const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+          const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
+          if (!functionsBaseUrl) return;
+          const res = await fetch(`${functionsBaseUrl}/pet-status`, {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              'x-profile-id': currentProfile.profile_id
+            }
+          });
+          const data = await res.json();
+          if (data?.pet_name) {
+            setPetName(data.pet_name);
+          }
+        } catch (e) {
+          console.error("Failed to fetch pet name", e);
+        }
+      };
+      fetchPetName();
+    }
+  }, [session, currentProfile]);
+
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!authReady) return null;
+    if (!session) return <Navigate to="/login" replace />;
+    if (!currentProfile) return null;
+    return <>{children}</>;
+  };
+
+  const ParentRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!authReady) return null;
+    if (!session) return <Navigate to="/login" replace />;
+    if (currentProfile?.profile_type === 'kid') return <Navigate to="/" replace />;
+    return <>{children}</>;
+  };
+
+  const isAuthRoute = location.pathname === '/login';
+  
+  const isParentRedirecting = currentProfile?.profile_type === 'parent' && location.pathname !== '/parent';
+  const showMainLayout = (isAuthRoute || currentProfile !== null) && !isParentRedirecting;
+
+  if (!isFrontendConfigured) {
+    return <ConfigurationErrorScreen missingVars={missingFrontendEnvVars} />;
+  }
+
+  return (
+    <>
+      <ProfileSelectorOverlay />
+      
+      {showMainLayout && (
+        <div className={isParentRoute ? "w-full" : "max-w-6xl mx-auto px-6 pt-5 pb-15 min-h-screen flex flex-col"}>
+          {!isParentRoute && !isAuthRoute && (
+            <nav className="flex justify-between items-center px-9 py-4 bg-app-surface/75 backdrop-blur-xl border border-app-border rounded-2xl mb-6 sticky top-4 z-50 shadow-2xl transition-colors md:flex-row flex-col">
+              <div className="flex items-center gap-3">
+                <h1 className="title">Katha Kalpana</h1>
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-2 mt-4 md:mt-0 w-full md:w-auto">
+                <Link to="/" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Home</Link>
+                {session && (
+                  <>
+                    <Link to="/generate" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Create</Link>
+                    <Link to="/library" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Library</Link>
+                    <Link to="/pet" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">{petName}</Link>
+                    <Link to="/words" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Word Vault</Link>
+                    <Link to="/quiz" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Practice</Link>
+                    {currentProfile?.profile_type !== 'kid' && (
+                      <Link to="/parent" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Parent</Link>
+                    )}
+                  </>
+                )}
+                <ThemeToggle />
+                {session && <NavProfileBadge />}
+                {session ? (
+                  <button onClick={handleLogout} className="bg-app-pink/15 border border-app-pink/30 text-app-pink px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-app-pink/25 flex items-center gap-1.5">
+                    <LogOut size={15} /> Logout
+                  </button>
+                ) : (
+                  <Link to="/login">Login</Link>
+                )}
+              </div>
+            </nav>
+          )}
+
+          <main className="flex-1">
+            <Routes>
+            <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/generate" element={<ProtectedRoute><Suspense fallback={<LoadingSpinner />}><StoryGenerator token={session?.access_token ?? ''} /></Suspense></ProtectedRoute>} />
+            <Route path="/library" element={<ProtectedRoute><Suspense fallback={<LoadingSpinner />}><Library /></Suspense></ProtectedRoute>} />
+            <Route path="/read" element={<ProtectedRoute><Suspense fallback={<LoadingSpinner />}><StoryReader /></Suspense></ProtectedRoute>} />
+            <Route path="/pet" element={<ProtectedRoute><Suspense fallback={<LoadingSpinner />}><PetDashboard /></Suspense></ProtectedRoute>} />
+            <Route path="/words" element={<ProtectedRoute><Suspense fallback={<LoadingSpinner />}><WordVault /></Suspense></ProtectedRoute>} />
+            <Route path="/quiz" element={<ProtectedRoute><Suspense fallback={<LoadingSpinner />}><Quiz /></Suspense></ProtectedRoute>} />
+            <Route path="/parent" element={<ParentRoute><Suspense fallback={<LoadingSpinner />}><ParentDashboard /></Suspense></ParentRoute>} />
+          </Routes>
+          </main>
+
+          {!isParentRoute && !isAuthRoute && (
+            <footer className="text-center p-6 mt-16 border-t border-app-border text-app-muted text-sm tracking-wide transition-colors">Made with ❤ for little storytellers</footer>
+          )}
+        </div>
+      )}
+
+      {!showMainLayout && (
+        <div className="fixed inset-0 flex items-center justify-center bg-app-bg z-40">
+          <div className="w-12 h-12 border-4 border-app-violet/30 border-t-app-pink rounded-full animate-spin" />
+        </div>
+      )}
+      <ScreenTimeTracker />
+    </>
+  );
+};
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
-  
   useEffect(() => {
     let mounted = true;
 
     if (!isFrontendConfigured) {
       setAuthReady(true);
-      return () => {
-        mounted = false;
-      };
+      return () => { mounted = false; };
     }
 
     const client = requireSupabaseClient();
-
     const initAuth = async () => {
       const { data } = await client.auth.getSession();
       if (mounted) {
@@ -40,10 +216,9 @@ const App: React.FC = () => {
         setAuthReady(true);
       }
     };
-
     initAuth();
 
-    const { data: subscription } = client.auth.onAuthStateChange((event: AuthChangeEvent, nextSession: Session | null) => {
+    const { data: subscription } = client.auth.onAuthStateChange((event, nextSession) => {
       if (mounted) {
         setSession(nextSession);
         setAuthReady(true);
@@ -57,96 +232,30 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = (nextSession: Session | null) => setSession(nextSession);
-  const handleLogout = () => requireSupabaseClient().auth.signOut();
-
   
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!authReady) return null;
-    if (!session) return <Navigate to="/login" replace />;
-    return <>{children}</>;
+  const handleLogout = async () => {
+    try {
+      await requireSupabaseClient().auth.signOut();
+    } catch (e) {
+      console.warn("Signout error caught:", e);
+    } finally {
+      localStorage.clear();
+      window.location.href = '/login';
+    }
   };
-
-  if (!isFrontendConfigured) {
-    return <ConfigurationErrorScreen missingVars={missingFrontendEnvVars} />;
-  }
 
   return (
     <ThemeProvider>
-      <Router>
-        <div className="max-w-6xl mx-auto px-6 pt-5 pb-15 min-h-screen">
-          <nav className="flex justify-between items-center px-9 py-4 bg-app-surface/75 backdrop-blur-xl border border-app-border rounded-2xl mb-6 sticky top-4 z-50 shadow-2xl transition-colors md:flex-row flex-col">
-            <h1 className="title">Katha Kalpana</h1>
-            <div className="flex items-center gap-2">
-              <Link to="/" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Home</Link>
-              {session && (
-                <>
-                  <Link to="/generate" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Create</Link>
-                  <Link to="/library" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Library</Link>
-                  <Link to="/pet" className="text-app-muted px-4 py-2 rounded-xl text-sm font-medium hover:text-app-text transition-colors">Chotuu</Link>
-                </>
-              )}
-              <ThemeToggle />
-              {session ? (
-                <button onClick={handleLogout} className="bg-app-pink/15 border border-app-pink/30 text-app-pink px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-app-pink/25 flex items-center gap-1.5">
-                  <LogOut size={15} /> Logout
-                </button>
-              ) : (
-                <Link to="/login">Login</Link>
-              )}
-            </div>
-          </nav>
-          
-
-          <main>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<Login onLogin={handleLogin} />} />
-              <Route
-                path="/generate"
-                element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <StoryGenerator token={session?.access_token ?? ''} />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/library"
-                element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <Library />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/read"
-                element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <StoryReader />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/pet"
-                element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <PetDashboard />
-                    </Suspense>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </main>
-
-          <footer className="text-center p-6 mt-16 border-t border-app-border text-app-muted text-sm tracking-wide transition-colors">Made with ❤ for little storytellers</footer>
-        </div>
-      </Router>
+      <ProfileProvider session={session}>
+        <Router>
+          <AppContent 
+            session={session} 
+            handleLogin={handleLogin} 
+            handleLogout={handleLogout} 
+            authReady={authReady} 
+          />
+        </Router>
+      </ProfileProvider>
     </ThemeProvider>
   );
 };
@@ -252,12 +361,12 @@ const HomePage = () => {
                 backgroundColor: 'rgb(var(--app-surface))',
               }}
             >
-              {/* Icon */}
+              {}
               <div className="flex-shrink-0 w-14 h-14 rounded-lg flex items-center justify-center border border-app-pink border-opacity-20 bg-app-pink bg-opacity-10">
                 <IconComponent size={24} className={`w-6 h-6 ${index === 0 ? 'text-app-pink' : index === 1 ? 'text-app-violet' : index === 2 ? 'text-app-cyan' : index === 3 ? 'text-app-gold' : 'text-app-green'}`} />
               </div>
               
-              {/* Text */}
+              {}
               <div>
                 <h3 className="text-lg font-semibold text-white mb-1.5 transition-colors hover:text-violet-300">
                   {feature.title}

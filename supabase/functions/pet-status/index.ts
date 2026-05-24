@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-profile-id",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
@@ -55,12 +55,18 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const profileId = req.headers.get("x-profile-id");
+  if (!profileId) {
+    return jsonResponse({ error: "Missing x-profile-id header" }, { status: 400 });
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const { data, error } = await supabase
     .from("pet_stats")
     .select("*")
     .eq("user_id", userId)
+    .eq("profile_id", profileId)
     .maybeSingle();
 
   if (error) {

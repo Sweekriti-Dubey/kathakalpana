@@ -38,7 +38,6 @@ function TitleContainer() {
     }
   };
 
-  
   return (
     <div className= 'rickshaw-hero'>
       <div className="navbar-clouds">
@@ -61,7 +60,6 @@ function TitleContainer() {
         {phase === 'idle' && (
           <button className='button' onClick={handleGetStarted}>Get Started</button>
         )}
-        
 
       </div>
     </div>
