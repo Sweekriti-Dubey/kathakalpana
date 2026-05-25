@@ -47,15 +47,19 @@ const DashboardView: React.FC<{
   
   const [showStatsDropdown, setShowStatsDropdown] = useState(false);
 
-  const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const getDemoBaselineDate = () => {
+    let baseline = sessionStorage.getItem('demo_baseline_date');
+    if (!baseline) {
+      baseline = new Date().toISOString();
+      sessionStorage.setItem('demo_baseline_date', baseline);
+    }
+    return new Date(baseline);
+  };
 
-  const storiesThisWeek = readingHistory.filter(r => new Date(r.created_at) >= oneWeekAgo).length;
-  const storiesLastWeek = readingHistory.filter(r => {
-    const d = new Date(r.created_at);
-    return d >= twoWeeksAgo && d < oneWeekAgo;
-  }).length;
+  const baselineDate = getDemoBaselineDate();
+
+  const storiesThisWeek = readingHistory.filter(r => new Date(r.created_at) >= baselineDate).length;
+  const storiesLastWeek = 0; 
   
   const extraStories = storiesThisWeek - storiesLastWeek;
   const extraText = extraStories > 0 ? `+${extraStories} vs last week` : extraStories < 0 ? `${extraStories} vs last week` : 'Same as last week';
@@ -64,7 +68,7 @@ const DashboardView: React.FC<{
     { 
       icon: BookOpen, 
       label: 'Finished Stories (This Week)', 
-      value: loading ? '...' : String(storiesThisWeek), 
+      value: loading ? '0' : String(storiesThisWeek), 
       color: 'bg-blue-500', 
       textColor: 'text-blue-400',
       onClick: () => setShowStatsDropdown(!showStatsDropdown)
@@ -72,8 +76,8 @@ const DashboardView: React.FC<{
     { 
       icon: TrendingUp, 
       label: 'This Week Progress', 
-      value: loading ? '...' : String(storiesThisWeek), 
-      subtext: extraText,
+      value: loading ? '0' : String(storiesThisWeek), 
+      subtext: loading ? '' : extraText,
       color: 'bg-green-500', 
       textColor: 'text-green-400' 
     },
@@ -131,7 +135,7 @@ const DashboardView: React.FC<{
             </div>
             <div className="space-y-3">
               {kids.map(kid => {
-                const kidStories = readingHistory.filter(r => r.profile_id === kid.profile_id && new Date(r.created_at) >= oneWeekAgo).length;
+                const kidStories = readingHistory.filter(r => r.profile_id === kid.profile_id && new Date(r.created_at) >= baselineDate).length;
                 return (
                   <div key={kid.profile_id} className="flex items-center justify-between bg-app-surface p-3 rounded-lg border border-app-border/50 hover:border-app-violet/30 transition-colors">
                     <div className="flex items-center gap-3">
