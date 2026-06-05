@@ -195,8 +195,6 @@ const StoryGenerator: React.FC<StoryGeneratorProps> = ({ token }) => {
 							<option value="German" className="bg-app-surface text-app-text">German</option>
 							<option value="Japanese" className="bg-app-surface text-app-text">Japanese</option>
 							<option value="Arabic" className="bg-app-surface text-app-text">Arabic</option>
-							<option value="Marathi" className="bg-app-surface text-app-text">Marathi</option>
-
 						</select>
 					</div>
 

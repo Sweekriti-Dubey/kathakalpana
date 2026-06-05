@@ -12,7 +12,6 @@ export interface Story{
   title: string;
   moral: string;
   chapters: Chapter[];
-  main_character?: string;
   created_at?: string;
 }
 

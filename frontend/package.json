@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cometchat/chat-sdk-javascript": "^4.1.10",
-    "@cometchat/chat-uikit-react": "^6.5.0",
     "@floating-ui/react": "^0.27.19",
     "@lottiefiles/dotlottie-react": "^0.18.7",
     "@supabase/supabase-js": "^2.56.0",
