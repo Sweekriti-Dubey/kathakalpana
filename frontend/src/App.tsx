@@ -4,6 +4,7 @@ import { Book, LogOut, Sparkles, Zap, TrendingUp, Bookmark, ArrowLeftRight } fro
 import { isFrontendConfigured, missingFrontendEnvVars, requireSupabaseClient } from './lib/supabaseClient';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProfileProvider, useProfile } from './contexts/ProfileContext';
+import { CometChatProvider } from './contexts/CometChatContext';
 import ThemeToggle from './components/ThemeToggle';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
@@ -19,6 +20,7 @@ const ParentDashboard = React.lazy(() => import('./components/ParentDashboard'))
 const ProfileSelector = React.lazy(() => import('./components/ProfileSelector'));
 const WordVault = React.lazy(() => import('./components/WordVault'));
 const Quiz = React.lazy(() => import('./components/Quiz'));
+const ChatWithParent = React.lazy(() => import('./components/ChatWithParent'));
 import ScreenTimeTracker from './components/ScreenTimeTracker';
 import owlLogo from './assets/images/owllogo2.png';
 
@@ -192,6 +194,12 @@ const AppContent: React.FC<{ session: Session | null; handleLogin: (s: Session |
         </div>
       )}
       <ScreenTimeTracker />
+      {/* Floating Chat FAB for kid profiles */}
+      {currentProfile?.profile_type === 'kid' && (
+        <Suspense fallback={null}>
+          <ChatWithParent mode="floating" />
+        </Suspense>
+      )}
     </>
   );
 };
@@ -247,14 +255,16 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <ProfileProvider session={session}>
-        <Router>
-          <AppContent 
-            session={session} 
-            handleLogin={handleLogin} 
-            handleLogout={handleLogout} 
-            authReady={authReady} 
-          />
-        </Router>
+        <CometChatProvider>
+          <Router>
+            <AppContent 
+              session={session} 
+              handleLogin={handleLogin} 
+              handleLogout={handleLogout} 
+              authReady={authReady} 
+            />
+          </Router>
+        </CometChatProvider>
       </ProfileProvider>
     </ThemeProvider>
   );

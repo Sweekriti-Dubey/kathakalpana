@@ -11,6 +11,7 @@ import { requireSupabaseClient } from '../lib/supabaseClient';
 import { useProfile } from '../contexts/ProfileContext';
 import { useNavigate } from 'react-router-dom';
 import owlLogo from '../assets/images/owllogo.webp';
+import ParentChatWidget from './ParentChatWidget';
 
 interface Chapter { image_url?: string; }
 interface Story {
@@ -222,6 +223,9 @@ const DashboardView: React.FC<{
           );
         })}
       </div>
+
+      {/* Parent Chat Widget */}
+      <ParentChatWidget />
     </>
   );
 };

@@ -27,6 +27,7 @@ type StoryChapter = {
 type StoryResponse = {
   title: string;
   moral: string;
+  main_character: string;
   chapters: StoryChapter[];
   character_seed: number;
 };
@@ -49,7 +50,8 @@ const systemPrompt = [
   "Output valid JSON only.",
   "CONSISTENCY RULE: describe characters exactly the same way every time.",
   "MANDATORY JSON STRUCTURE:",
-  '{"title":"...","moral":"...","chapters":[{"title":"...","content":"...","image_prompt":"..."}]}'
+  '{"title":"...","moral":"...","main_character":"...","chapters":[{"title":"...","content":"...","image_prompt":"..."}]}',
+  'main_character must be the name of the protagonist of the story.'
 ].join("\n");
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
@@ -174,7 +176,8 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "genre and chapters are required." }, { status: 400 });
   }
 
-  const userId = parseUserIdFromAuthorizationHeader(req.headers.get("Authorization") ?? "");
+  const userId = parseUserIdFromAuthorizationHeader(req.headers.get("Authorization") ?? "");
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY);
 
   const characterSeed = payload.character_seed ?? Math.floor(Math.random() * 90000) + 10000;
@@ -301,6 +304,7 @@ Deno.serve(async (req: Request) => {
   const response: StoryResponse = {
     title: story.title,
     moral: story.moral,
+    main_character: story.main_character || 'the main character',
     chapters,
     character_seed: characterSeed,
   };

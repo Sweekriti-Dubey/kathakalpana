@@ -9,6 +9,9 @@ import { useWordTooltip } from '../hooks/useWordTooltip';
 import { tokenizeContent, getCleanWord, isClickableWord } from '../utils/tokenizeContent';
 import WordTooltipPanel from './WordTooltipPanel';
 import { useProfile } from '../contexts/ProfileContext';
+import { useCometChat } from '../contexts/CometChatContext';
+import ChatWithParent from './ChatWithParent';
+import ChatWithCharacter from './ChatWithCharacter';
 
 const StoryReader: React.FC = () => {
   const location = useLocation();
@@ -28,6 +31,9 @@ const StoryReader: React.FC = () => {
   const [isFullView, setIsFullView] = useState(false);
   const { state: tooltipState, open: openTooltip, close: closeTooltip } = useWordTooltip();
   const [showAllChaptersView, setShowAllChaptersView] = useState(false);
+  const [showChatWithParent, setShowChatWithParent] = useState(false);
+  const [showChatWithCharacter, setShowChatWithCharacter] = useState(false);
+  const { parentName } = useCometChat();
   const edgeBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
   const functionsBaseUrl = edgeBaseUrl?.trim()?.replace(/\/$/, '');
   const completeUrl = `${functionsBaseUrl}/complete-reading`;
@@ -553,9 +559,34 @@ const StoryReader: React.FC = () => {
               </p>
             )}
 
+            {/* Post-story chat options */}
+            <p className="text-[#D1FAE5] text-[0.85em] font-medium mb-3 opacity-80">
+              Have any doubts about the story?
+            </p>
+
+            {/* Chat with Story Character (AI) */}
+            {!showChatWithCharacter && !showChatWithParent && (
+              <button
+                onClick={() => setShowChatWithCharacter(true)}
+                className="w-full mt-1 bg-gradient-to-br from-[#fbbf24]/20 to-[#f59e0b]/15 text-[#fbbf24] border border-[#fbbf24]/30 py-3 px-[30px] rounded-[20px] text-[0.92em] font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-[0_10px_25px_rgba(251,191,36,0.3)] flex items-center justify-center gap-2"
+              >
+                ✨ Chat with {story.main_character || 'the Character'}
+              </button>
+            )}
+
+            {/* Chat with Parent (CometChat) */}
+            {parentName && !showChatWithParent && !showChatWithCharacter && (
+              <button
+                onClick={() => setShowChatWithParent(true)}
+                className="w-full mt-2 bg-gradient-to-br from-[#8b5cf6]/20 to-[#ec4899]/15 text-[#a78bfa] border border-[#8b5cf6]/30 py-3 px-[30px] rounded-[20px] text-[0.92em] font-bold cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-[0_10px_25px_rgba(139,92,246,0.3)] flex items-center justify-center gap-2"
+              >
+                💬 Chat with {parentName}
+              </button>
+            )}
+
             <button
               onClick={() => navigate('/pet')}
-              className="bg-gradient-to-br from-[#059669] to-[#047857] text-white border-none py-3 px-[30px] rounded-[20px] text-[1em] font-bold cursor-pointer transition-all duration-300 w-full hover:scale-105 hover:shadow-[0_10px_25px_rgba(16,185,129,0.4)]"
+              className="mt-3 bg-gradient-to-br from-[#059669] to-[#047857] text-white border-none py-3 px-[30px] rounded-[20px] text-[1em] font-bold cursor-pointer transition-all duration-300 w-full hover:scale-105 hover:shadow-[0_10px_25px_rgba(16,185,129,0.4)]"
             >
               View Chotuu
             </button>
@@ -623,6 +654,33 @@ const StoryReader: React.FC = () => {
         </div>
       )}
       <WordTooltipPanel state={tooltipState} onClose={closeTooltip} onSaveWord={handleSaveWord} />
+
+      {/* Inline Chat with Parent - shown after finishing a story */}
+      {showChatWithParent && (
+        <div className="fixed inset-0 flex items-center justify-center z-[300] p-5 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-[450px] max-h-[85vh]">
+            <ChatWithParent
+              storyTitle={story.title}
+              mode="inline"
+              onClose={() => setShowChatWithParent(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Inline Chat with Character - AI-powered in-character chat */}
+      {showChatWithCharacter && (
+        <div className="fixed inset-0 flex items-center justify-center z-[300] p-5 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-[450px] max-h-[85vh]">
+            <ChatWithCharacter
+              characterName={story.main_character || 'the Character'}
+              storyTitle={story.title}
+              storySummary={story.moral}
+              onClose={() => setShowChatWithCharacter(false)}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };
